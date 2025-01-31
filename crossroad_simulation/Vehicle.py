@@ -1,6 +1,6 @@
 from random import sample
 
-DIRECTIONS = ["north", "south", "east", "west"]
+DIRECTIONS = ["North", "South", "East", "West"]
 TYPES = ["normal, priority"]
 
 class Vehicle:

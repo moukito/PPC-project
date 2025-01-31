@@ -4,7 +4,9 @@ from random import uniform
 from json import dumps
 from time import sleep
 
-MESSAGE_QUEUE_KEYS = {"north": 1000, "south": 1001, "east": 1002, "west": 1003}
+
+MESSAGE_QUEUE_KEYS = {"North": 1000, "South": 1001, "East": 1002, "West": 1003}
+
 
 def normalTrafficGen(vehicle: Vehicle):
     if vehicle.type != "normal":
@@ -16,12 +18,13 @@ def normalTrafficGen(vehicle: Vehicle):
 
             mq.send(message)
 
-            print(f"[Generator] Sent normal vehicle on {vehicle.source}\n")
+            print(f"[Normal Traffic Generator] Sent normal vehicle on {vehicle.source}\n")
 
             sleep(uniform(1, 5))
 
     except Exception as e:
         print(f"[Generator] Error: {e}")
+
 
 if __name__ == "__main__":
     vehicle = Vehicle("normal")

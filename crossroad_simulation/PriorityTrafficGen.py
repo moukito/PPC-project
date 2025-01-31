@@ -1,13 +1,17 @@
-import Vehicle
-import sysv_ipc
-import signal
+from Vehicle import Vehicle
+from Lights import TrafficLights
 from random import uniform
 from json import dumps
 from time import sleep
+import sysv_ipc
+import signal
+import os
 
-MESSAGE_QUEUE_KEYS = {"north": 1000, "south": 1001, "east": 1002, "west": 1003}
 
-def normalTrafficGen(vehicle: Vehicle):
+MESSAGE_QUEUE_KEYS = {"North": 1000, "South": 1001, "East": 1002, "West": 1003}
+
+
+def priorityTrafficGen(vehicle: Vehicle):
     if vehicle.type != "priority":
         raise TypeError("Not a priority vehicle !")
     try:
@@ -17,16 +21,21 @@ def normalTrafficGen(vehicle: Vehicle):
 
             mq.send(message)
 
-            print(f"[Generator] Sent priority vehicle on {vehicle.source}\n")
+            print(f"[Priority Traffic Generator] Sent priority vehicle on {vehicle.source}\n")
             
             sleep(uniform(1, 5))
 
     except Exception as e:
         print(f"[Generator] Error: {e}")
 
-def handler
+
+def send_priority_signal(traffic_lights: TrafficLights, vehicle: Vehicle):
+    with traffic_lights.priority_direction.get_lock():
+        traffic_lights.set_priority_direction(vehicle.source)
+        print(f"[Priority Traffic Generator] Priority vehicle detected from {vehicle.source}, sending SIGUSR1...")
+        os.kill(traffic_lights.pid, signal.SIGUSR1)
+
 
 if __name__ == "__main__":
     vehicle = Vehicle("priority")
-    signal.signal(signal.SIGUSR1, handler)
-    normalTrafficGen()
+    priorityTrafficGen()
