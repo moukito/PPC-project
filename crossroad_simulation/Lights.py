@@ -1,4 +1,5 @@
 import os
+import queue
 import time
 import signal
 import multiprocessing
@@ -23,16 +24,18 @@ class TrafficLights(multiprocessing.Process):
 		"""Initialize shared memory for four traffic lights and priority event."""
 		super().__init__()
 		self.lights_state = {direction: Value('i', RED) for direction in DIRECTIONS}  # Shared light states
-		self.priority_event = multiprocessing.Event()  # Event for priority vehicle detection
 		self.priority_direction = multiprocessing.Value('i', -1)  # Stores the index of the priority direction
+		self.event = multiprocessing.Event()
 		signal.signal(signal.SIGUSR1, self.priority_signal_handler)
+		self.queue = queue.Queue()
 
 	def run(self):
 		"""Main loop to control traffic lights."""
 		while True:
-			if self.priority_event.is_set():
+			if not self.queue.empty():
 				self.handle_priority_vehicle()
-				self.priority_event.clear()
+				while not self.event.set():
+					time.sleep(1)
 			else:
 				self.toggle_normal_cycle()
 				time.sleep(10)
@@ -58,7 +61,7 @@ class TrafficLights(multiprocessing.Process):
 
 	def handle_priority_vehicle(self):
 		"""Turns only the priority direction's light green while setting all others to red."""
-		priority_dir_index = self.priority_direction.value
+		priority_dir_index = self.queue.get()
 		if priority_dir_index == -1:
 			return  # No valid priority direction set
 
@@ -74,13 +77,16 @@ class TrafficLights(multiprocessing.Process):
 			self.lights_state[priority_dir].value = GREEN
 
 		print(f"[TrafficLights] Priority vehicle detected! Green light for {priority_dir}, all others set to RED.")
-		time.sleep(5)  # Allow the emergency vehicle to pass
 
 	def priority_signal_handler(self, signum, frame):
 		"""Handles SIGUSR1 signal for priority vehicle detection."""
 		print("[TrafficLights] Received priority vehicle signal!")
-		if self.priority_direction.value != -1:
-			self.priority_event.set()
+		if signum == signal.SIGUSR1:
+			if self.priority_direction.value != -1:
+				self.queue.put(self.priority_direction.value)
+				self.priority_direction.value = -1
+		elif signum == signal.SIGUSR2:
+			self.event.set()
 
 	def set_priority_direction(self, direction: str):
 		"""Sets the priority direction before sending the signal."""
@@ -95,8 +101,11 @@ if __name__ == "__main__":
 
 	try:
 		time.sleep(15)
-		traffic_lights.set_priority_direction("North")
-		os.kill(traffic_lights.pid, signal.SIGUSR1)
+		with traffic_lights.priority_direction.get_lock():
+			traffic_lights.set_priority_direction("North")
+			os.kill(traffic_lights.pid, signal.SIGUSR1)
+		time.sleep(5)
+		os.kill(traffic_lights.pid, signal.SIGUSR2)
 		traffic_lights.join()
 	except KeyboardInterrupt:
 		print("\n[TrafficLights] Stopping simulation.")
