@@ -4,15 +4,12 @@ import time
 import signal
 import multiprocessing
 from multiprocessing import Value
-
+from Direction import Direction
 from TimeManager import TimeManager
 
 # Traffic light states
 RED = 0
 GREEN = 1
-
-# Directions at the intersection
-DIRECTIONS = ["North", "South", "East", "West"]
 
 
 class TrafficLights(multiprocessing.Process):
@@ -25,7 +22,7 @@ class TrafficLights(multiprocessing.Process):
 	def __init__(self, lights_event, coordinator_event, time_manager=TimeManager("auto", 0)):
 		"""Initialize shared memory for four traffic lights and priority event."""
 		super().__init__()
-		self.lights_state = {direction: Value('i', RED) for direction in DIRECTIONS}  # Shared light states
+		self.lights_state = {direction: Value('i', RED) for direction in Direction}  # Shared light states
 		self.priority_direction = multiprocessing.Value('i', -1)  # Stores the index of the priority direction
 		self.event = multiprocessing.Event()
 		signal.signal(signal.SIGUSR1, self.priority_signal_handler)
@@ -34,19 +31,27 @@ class TrafficLights(multiprocessing.Process):
 		self.coordinator_event = coordinator_event
 		self.time_manager = time_manager
 
+	def get_shared_lights_state(self):
+		"""
+		Provides access to the shared lights_state for external processes.
+		Returns the dictionary of shared memory objects representing light states.
+		"""
+		return self.lights_state
+
 	def run(self):
 		"""Main loop to control traffic lights."""
 		while True:
 			if not self.queue.empty():
 				self.handle_priority_vehicle()
 				while not self.event.is_set():
-					self.next(1)
+					self.next()
 				self.event.clear()
 			else:
 				self.toggle_normal_cycle()
-				self.next(5)
+				for i in range(5):
+					self.next()
 
-	def next(self, unit):  # todo : abstract this method
+	def next(self, unit: int = 1):  # todo : abstract this method
 		self.lights_event.set()
 		self.time_manager.sleep(unit)
 		self.coordinator_event.wait()
@@ -54,17 +59,17 @@ class TrafficLights(multiprocessing.Process):
 
 	def toggle_normal_cycle(self):
 		"""Switches traffic lights in normal mode (North-South green, East-West red, then switch)."""
-		current_ns = self.lights_state["North"].value  # Get current North-South light state
+		current_ns = self.lights_state[Direction.NORTH].value  # Get current North-South light state
 
 		# Toggle states: North-South and East-West must be opposite
 		new_ns = GREEN if current_ns == RED else RED
 		new_ew = RED if new_ns == GREEN else GREEN
 
-		for direction in ["North", "South"]:
+		for direction in [Direction.NORTH, Direction.SOUTH]:
 			with self.lights_state[direction].get_lock():
 				self.lights_state[direction].value = new_ns
 
-		for direction in ["East", "West"]:
+		for direction in [Direction.EAST, Direction.WEST]:
 			with self.lights_state[direction].get_lock():
 				self.lights_state[direction].value = new_ew
 
@@ -77,10 +82,10 @@ class TrafficLights(multiprocessing.Process):
 		if priority_dir_index == -1:
 			return  # No valid priority direction set
 
-		priority_dir = DIRECTIONS[priority_dir_index]
+		priority_dir = list(Direction)[priority_dir_index]
 
 		# Set all lights to RED first
-		for direction in DIRECTIONS:
+		for direction in Direction:
 			with self.lights_state[direction].get_lock():
 				self.lights_state[direction].value = RED
 
@@ -102,8 +107,8 @@ class TrafficLights(multiprocessing.Process):
 
 	def set_priority_direction(self, direction: str):
 		"""Sets the priority direction before sending the signal."""
-		if direction in DIRECTIONS:
-			self.priority_direction.value = DIRECTIONS.index(direction)
+		if direction in Direction:
+			self.priority_direction.value = Direction(direction).value
 			print(f"[TrafficLights] Priority vehicle approaching from {direction}")
 
 
@@ -116,7 +121,7 @@ if __name__ == "__main__":
 
 	try:
 		coordinator_event.set()
-		with traffic_lights.priority_direction.get_lock():
+		with traffic_lights.priority_direction.get_lock(): # todo : factorise it
 			traffic_lights.set_priority_direction("North")
 			os.kill(traffic_lights.pid, signal.SIGUSR1)
 		time.sleep(4)

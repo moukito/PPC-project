@@ -18,7 +18,8 @@ Modules:
 - config: Stores simulation parameters.
 """
 
-from .Lights import TrafficLights, RED, GREEN, DIRECTIONS
+from .Direction import Direction
+from .Lights import TrafficLights, RED, GREEN
 from .Coordinator import Coordinator
 #from .normal_traffic_gen import NormalTrafficGenerator
 #from .priority_traffic_gen import PriorityTrafficGenerator
@@ -27,6 +28,7 @@ from .Coordinator import Coordinator
 #from .config import SIMULATION_SETTINGS
 
 __all__ = [
+	"Direction",
 	"TrafficLights",
 	"Coordinator",
 	"NormalTrafficGenerator",
