@@ -5,6 +5,8 @@ import signal
 import multiprocessing
 from multiprocessing import Value
 
+from TimeManager import TimeManager
+
 # Traffic light states
 RED = 0
 GREEN = 1
@@ -20,7 +22,7 @@ class TrafficLights(multiprocessing.Process):
 	- Priority mode: Only the light in the direction of the priority vehicle's approach turns green.
 	"""
 
-	def __init__(self):
+	def __init__(self, lights_event, coordinator_event, time_manager=TimeManager("auto", 0)):
 		"""Initialize shared memory for four traffic lights and priority event."""
 		super().__init__()
 		self.lights_state = {direction: Value('i', RED) for direction in DIRECTIONS}  # Shared light states
@@ -28,17 +30,27 @@ class TrafficLights(multiprocessing.Process):
 		self.event = multiprocessing.Event()
 		signal.signal(signal.SIGUSR1, self.priority_signal_handler)
 		self.queue = queue.Queue()
+		self.lights_event = lights_event
+		self.coordinator_event = coordinator_event
+		self.time_manager = time_manager
 
 	def run(self):
 		"""Main loop to control traffic lights."""
 		while True:
 			if not self.queue.empty():
 				self.handle_priority_vehicle()
-				while not self.event.set():
-					time.sleep(1)
+				while not self.event.is_set():
+					self.next(1)
+				self.event.clear()
 			else:
 				self.toggle_normal_cycle()
-				time.sleep(10)
+				self.next(5)
+
+	def next(self, unit):  # todo : abstract this method
+		self.lights_event.set()
+		self.time_manager.sleep(unit)
+		self.coordinator_event.wait()
+		self.lights_event.clear()
 
 	def toggle_normal_cycle(self):
 		"""Switches traffic lights in normal mode (North-South green, East-West red, then switch)."""
@@ -96,15 +108,18 @@ class TrafficLights(multiprocessing.Process):
 
 
 if __name__ == "__main__":
-	traffic_lights = TrafficLights()
+	lights_event = multiprocessing.Event()
+	coordinator_event = multiprocessing.Event()
+
+	traffic_lights = TrafficLights(lights_event, coordinator_event, TimeManager("auto", 2))
 	traffic_lights.start()
 
 	try:
-		time.sleep(15)
+		coordinator_event.set()
 		with traffic_lights.priority_direction.get_lock():
 			traffic_lights.set_priority_direction("North")
 			os.kill(traffic_lights.pid, signal.SIGUSR1)
-		time.sleep(5)
+		time.sleep(4)
 		os.kill(traffic_lights.pid, signal.SIGUSR2)
 		traffic_lights.join()
 	except KeyboardInterrupt:
