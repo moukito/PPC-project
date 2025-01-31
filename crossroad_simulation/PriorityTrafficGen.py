@@ -12,6 +12,9 @@ MESSAGE_QUEUE_KEYS = {"North": 1000, "South": 1001, "East": 1002, "West": 1003}
 
 
 def priorityTrafficGen(vehicle: Vehicle):
+    """
+    Generate priority vehicles
+    """
     if vehicle.type != "priority":
         raise TypeError("Not a priority vehicle !")
     try:
@@ -26,10 +29,13 @@ def priorityTrafficGen(vehicle: Vehicle):
             sleep(uniform(1, 5))
 
     except Exception as e:
-        print(f"[Generator] Error: {e}")
+        print(f"[Priority Traffic Generator] Error: {e}")
 
 
 def send_priority_signal(traffic_lights: TrafficLights, vehicle: Vehicle):
+    """
+    Send a priority signal SIGUSR1 to the TRafficLights process for an approaching emergency and safely updating the priority direction
+    """
     with traffic_lights.priority_direction.get_lock():
         traffic_lights.set_priority_direction(vehicle.source)
         print(f"[Priority Traffic Generator] Priority vehicle detected from {vehicle.source}, sending SIGUSR1...")
@@ -38,4 +44,4 @@ def send_priority_signal(traffic_lights: TrafficLights, vehicle: Vehicle):
 
 if __name__ == "__main__":
     vehicle = Vehicle("priority")
-    priorityTrafficGen()
+    priorityTrafficGen(vehicle)

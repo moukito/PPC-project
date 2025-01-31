@@ -1,7 +1,7 @@
 from random import sample
 
 DIRECTIONS = ["North", "South", "East", "West"]
-TYPES = ["normal, priority"]
+TYPES = ["normal", "priority"]
 
 class Vehicle:
     def __init__(self, type):
@@ -12,9 +12,9 @@ class Vehicle:
     def __str__(self):
         return f"type: {self.type}\nsource: {self.source}\ndestination: {self.destination}\n"
     
-    def __repr__(self):
+    def to_dict(self):
         return {
-            "type": {self.type},
-            "source": {self.source},
-            "destination": {self.destination}
+            "type": self.type,
+            "source": self.source,
+            "destination": self.destination
         }

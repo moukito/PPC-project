@@ -1,4 +1,4 @@
-import Vehicle
+from Vehicle import Vehicle
 import sysv_ipc
 from random import uniform
 from json import dumps
@@ -9,12 +9,15 @@ MESSAGE_QUEUE_KEYS = {"North": 1000, "South": 1001, "East": 1002, "West": 1003}
 
 
 def normalTrafficGen(vehicle: Vehicle):
+    """
+    Genarate normal vehicles
+    """
     if vehicle.type != "normal":
         raise TypeError("Not a normal vehicle !")
     try:
         mq = sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[vehicle.source], sysv_ipc.IPC_CREAT)
         while True:
-            message = dumps(vehicle).encode()
+            message = dumps(vehicle.to_dict()).encode()
 
             mq.send(message)
 
@@ -23,9 +26,9 @@ def normalTrafficGen(vehicle: Vehicle):
             sleep(uniform(1, 5))
 
     except Exception as e:
-        print(f"[Generator] Error: {e}")
+        print(f"[Normal Traffic Generator] Error: {e}")
 
 
 if __name__ == "__main__":
     vehicle = Vehicle("normal")
-    normalTrafficGen()
+    normalTrafficGen(vehicle)
