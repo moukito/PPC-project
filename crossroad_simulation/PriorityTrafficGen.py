@@ -1,9 +1,8 @@
 from Vehicle import Vehicle
-from Lights import TrafficLights
 from random import uniform
-from json import dumps
 from time import sleep
 from Direction import Direction
+from Lights import TrafficLights
 import sysv_ipc
 import signal
 import os
@@ -12,23 +11,25 @@ import os
 MESSAGE_QUEUE_KEYS = {direction: 1000 + i for i, direction in enumerate(Direction)}
 
 
-
-def priorityTrafficGen(vehicle: Vehicle):
+def priorityTrafficGen(source: Direction):
     """
-    Generate priority vehicles
+    Generate priority vehicles in the source direction
     """
-    if vehicle.type != "priority":
-        raise TypeError("Not a priority vehicle !")
     try:
-        mq = sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[Direction(vehicle.source)], sysv_ipc.IPC_CREAT)
+        mq = sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[Direction(source)], sysv_ipc.IPC_CREAT)
+        vehicle = Vehicle("priority", source, None)
+
         while True:
-            message = dumps(vehicle).encode()
+            message = str(vehicle).encode()
 
             mq.send(message)
 
-            print(f"[Priority Traffic Generator] Sent priority vehicle on {vehicle.source}\n")
+            print(f"[Priority Traffic Generator] Sent priority vehicle on {source.name}\n")
             
-            sleep(uniform(1, 5))
+            sleep(uniform(60, 120))
+
+    except sysv_ipc.ExistentialError:
+        print(f"[Priority Traffic Generator] Error: Message queue for {source.name} already exists!")
 
     except Exception as e:
         print(f"[Priority Traffic Generator] Error: {e}")
@@ -45,5 +46,4 @@ def send_priority_signal(traffic_lights: TrafficLights, vehicle: Vehicle):
 
 
 if __name__ == "__main__":
-    vehicle = Vehicle("priority")
-    priorityTrafficGen(vehicle)
+    priorityTrafficGen(Direction.NORTH)
