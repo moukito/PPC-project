@@ -4,7 +4,7 @@ from random import sample
 TYPES = ["normal", "priority"]
 
 class Vehicle:
-    def __init__(self, type, source: Direction = None, destination: Direction = None):
+    def __init__(self, type, source: Direction=None, destination: Direction=None):
         if type not in TYPES:
             raise TypeError("Wrong type !")
         self.type = type
@@ -33,13 +33,6 @@ class Vehicle:
 
     def __str__(self):
         return f"type: {self.type}\nsource: {self.source}\ndestination: {self.destination}\n"
-
-    def to_dict(self):
-        return {
-            "type": self.type,
-            "source": self.source,
-            "destination": self.destination
-        }
     
 if __name__ == "__main__":
     vehicle = Vehicle("normal", Direction.NORTH, Direction.WEST)
