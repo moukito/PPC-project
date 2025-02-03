@@ -1,5 +1,8 @@
 import multiprocessing
+import random
+
 import sysv_ipc
+from typing import Dict, List
 from Vehicle import Vehicle
 from Direction import Direction
 from Lights import TrafficLights
@@ -21,9 +24,8 @@ class Coordinator(multiprocessing.Process):
 		self.coordinator_event = coordinator_event
 		self.lights_event = lights_event
 		self.lights_state = lights_state
-		self.roads = {direction: [] for direction in Direction}
-		self.traffic_queues = {direction: sysv_ipc.MessageQueue(key, sysv_ipc.IPC_CREAT)
-		                       for key, direction in zip(range(1000, 1004), Direction)}  # Unique keys for queues
+		self.roads: Dict[Direction, List[Vehicle]] = {direction: [] for direction in Direction}
+		self.traffic_queues = {direction: sysv_ipc.MessageQueue(key, sysv_ipc.IPC_CREAT) for key, direction in zip(range(1000, 1004), Direction)}  # Unique keys for queues
 
 	def process_traffic(self):
 		"""Main loop that processes traffic from all directions."""
@@ -64,13 +66,28 @@ class Coordinator(multiprocessing.Process):
 				print(f"[Coordinator] Moving vehicle from {direction}.")
 				self.roads[direction].pop(0)
 		elif len(green_roads) == 2:
-			d1, d2 = green_roads  # todo : a check
-			if self.roads[d1] and self.roads[d1][0].destination == d2:
-				print(f"Moving vehicle from {d1} to {d2}.")
-				self.roads[d1].pop(0)  # Move the first vehicle on d1
-			elif self.roads[d2] and self.roads[d2][0].destination == d1:
-				print(f"Moving vehicle from {d2} to {d1}.")
-				self.roads[d2].pop(0)  # Move the first vehicle on d2
+			d1, d2 = green_roads
+			results = []
+
+			if self.roads[d1][0].destination != self.roads[d2][0].destination.get_right():
+				print(f"Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
+				results.append(self.roads[d1].pop)
+
+			if self.roads[d2][0].destination != self.roads[d1][0].destination.get_right():
+				print(f"Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
+				results.append(self.roads[d2].pop)
+
+			if len(results) == 0:
+				r = random.random()
+				if r < 0.5:
+					print(f"Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
+					self.roads[d1].pop(0)
+				else:
+					print(f"Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
+					self.roads[d2].pop(0)
+
+			for result in results:
+				result(0)
 
 
 if __name__ == "__main__":
