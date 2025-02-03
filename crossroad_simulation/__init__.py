@@ -18,26 +18,21 @@ Modules:
 - config: Stores simulation parameters.
 """
 
+from .LightColor import LightColor
 from .Direction import Direction
-from .Lights import TrafficLights, RED, GREEN
+from .Lights import TrafficLights
 from .Coordinator import Coordinator
-#from .normal_traffic_gen import NormalTrafficGenerator
-#from .priority_traffic_gen import PriorityTrafficGenerator
+from .TrafficGen import normal_traffic_gen, priority_traffic_gen
 #from .display import Display
-#from .ipc import setup_ipc, cleanup_ipc
 #from .config import SIMULATION_SETTINGS
 
 __all__ = [
+	"LightColor",
 	"Direction",
 	"TrafficLights",
 	"Coordinator",
-	"NormalTrafficGenerator",
-	"PriorityTrafficGenerator",
+	"normal_traffic_gen",
+	"priority_traffic_gen",
 	"Display",
-	"setup_ipc",
-	"cleanup_ipc",
 	"SIMULATION_SETTINGS",
-	"RED",
-	"GREEN",
-	"DIRECTIONS"
 ]
