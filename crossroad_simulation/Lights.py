@@ -4,12 +4,13 @@ import time
 import signal
 import multiprocessing
 from multiprocessing import Value
-from Direction import Direction
-from TimeManager import TimeManager
-from LightColor import LightColor
+from crossroad_simulation.Direction import Direction
+from crossroad_simulation.TimeManager import TimeManager
+from crossroad_simulation.LightColor import LightColor
+from crossroad_simulation.Timemanipulator import Timemanipulator
 
 
-class TrafficLights(multiprocessing.Process):
+class TrafficLights(multiprocessing.Process, Timemanipulator):
 	"""
 	Manages the traffic lights at the intersection.
 	- Normal mode: Opposing lights share the same state (North-South, East-West).
@@ -48,7 +49,7 @@ class TrafficLights(multiprocessing.Process):
 				for i in range(5):
 					self.next()
 
-	def next(self, unit: int = 1):  # todo : abstract this method
+	def next(self, unit: int = 1):
 		self.lights_event.set()
 		self.time_manager.sleep(unit)
 		self.coordinator_event.wait()

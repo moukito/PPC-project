@@ -1,16 +1,16 @@
 import multiprocessing
 import random
-
 import sysv_ipc
 from typing import Dict, List
-from Vehicle import Vehicle
-from Direction import Direction
-from Lights import TrafficLights
-from LightColor import LightColor
+from crossroad_simulation.Vehicle import Vehicle
+from crossroad_simulation.Direction import Direction
+from crossroad_simulation.Lights import TrafficLights
+from crossroad_simulation.LightColor import LightColor
 from crossroad_simulation.TimeManager import TimeManager
+from crossroad_simulation.Timemanipulator import Timemanipulator
 
 
-class Coordinator(multiprocessing.Process):
+class Coordinator(multiprocessing.Process, Timemanipulator):
 	"""
 	Manages vehicle movement at the intersection.
 	- Uses SysV message queues for inter-process communication.
@@ -35,7 +35,7 @@ class Coordinator(multiprocessing.Process):
 			self.move_vehicle()
 			self.next()
 
-	def next(self, unit=1):  # todo : abstract this method
+	def next(self, unit=1):
 		self.coordinator_event.set()
 		self.time_manager.sleep(unit)
 		self.lights_event.wait()
@@ -67,6 +67,7 @@ class Coordinator(multiprocessing.Process):
 			if self.roads[direction]:
 				print(f"[Coordinator] Moving vehicle from {direction}.")
 				self.roads[direction].pop(0)
+
 		elif len(green_roads) == 2:
 			d1, d2 = green_roads
 			results = []
