@@ -6,10 +6,7 @@ import multiprocessing
 from multiprocessing import Value
 from Direction import Direction
 from TimeManager import TimeManager
-
-# Traffic light states
-RED = 0
-GREEN = 1
+from LightColor import LightColor
 
 
 class TrafficLights(multiprocessing.Process):
@@ -22,7 +19,7 @@ class TrafficLights(multiprocessing.Process):
 	def __init__(self, lights_event, coordinator_event, time_manager=TimeManager("auto", 0)):
 		"""Initialize shared memory for four traffic lights and priority event."""
 		super().__init__()
-		self.lights_state = {direction: Value('i', RED) for direction in Direction}  # Shared light states
+		self.lights_state = {direction: Value('i', LightColor.RED) for direction in Direction}  # Shared light states
 		self.priority_direction = multiprocessing.Value('i', -1)  # Stores the index of the priority direction
 		self.event = multiprocessing.Event()
 		signal.signal(signal.SIGUSR1, self.priority_signal_handler)
@@ -62,8 +59,8 @@ class TrafficLights(multiprocessing.Process):
 		current_ns = self.lights_state[Direction.NORTH].value  # Get current North-South light state
 
 		# Toggle states: North-South and East-West must be opposite
-		new_ns = GREEN if current_ns == RED else RED
-		new_ew = RED if new_ns == GREEN else GREEN
+		new_ns = LightColor.GREEN if current_ns == LightColor.RED else LightColor.RED
+		new_ew = LightColor.RED if new_ns == LightColor.GREEN else LightColor.GREEN
 
 		for direction in [Direction.NORTH, Direction.SOUTH]:
 			with self.lights_state[direction].get_lock():
@@ -74,7 +71,7 @@ class TrafficLights(multiprocessing.Process):
 				self.lights_state[direction].value = new_ew
 
 		print(
-			f"[TrafficLights] Normal mode: North-South {'GREEN' if new_ns == GREEN else 'RED'}, East-West {'GREEN' if new_ew == GREEN else 'RED'}")
+			f"[TrafficLights] Normal mode: North-South {'GREEN' if new_ns == LightColor.GREEN else 'RED'}, East-West {'GREEN' if new_ew == LightColor.GREEN else 'RED'}")
 
 	def handle_priority_vehicle(self):
 		"""Turns only the priority direction's light green while setting all others to red."""
@@ -87,11 +84,11 @@ class TrafficLights(multiprocessing.Process):
 		# Set all lights to RED first
 		for direction in Direction:
 			with self.lights_state[direction].get_lock():
-				self.lights_state[direction].value = RED
+				self.lights_state[direction].value = LightColor.RED
 
 		# Set only the priority direction to GREEN
 		with self.lights_state[priority_dir].get_lock():
-			self.lights_state[priority_dir].value = GREEN
+			self.lights_state[priority_dir].value = LightColor.GREEN
 
 		print(f"[TrafficLights] Priority vehicle detected! Green light for {priority_dir}, all others set to RED.")
 
