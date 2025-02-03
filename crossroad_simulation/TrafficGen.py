@@ -4,15 +4,17 @@ from time import sleep
 from Direction import Direction
 from Lights import TrafficLights
 import sysv_ipc
-import threading
+import multiprocessing
 import signal
 import os
 
 
 MESSAGE_QUEUE_KEYS = {direction: 1000 + i for i, direction in enumerate(Direction)}
 MAX_VEHICLES_IN_QUEUE = 10
-queue_free = threading.Event()  # Indicate when the queue has available space
-lock = threading.Lock() # Single global lock for synchronization
+
+manager = multiprocessing.Manager()
+queue_free = manager.Event()  # Indicate when the queue has available space
+lock = multiprocessing.Lock()  # Single global lock for synchronization
 
 
 def normal_traffic_gen(source: Direction):
@@ -43,6 +45,7 @@ def normal_traffic_gen(source: Direction):
         print(f"[Normal Traffic Generator] Error: Message queue for {source.name} already exists!")
     except Exception as e:
         print(f"[Normal Traffic Generator] Error: {e}")
+
 
 def priority_traffic_gen(source: Direction):
     """ 
@@ -83,7 +86,7 @@ def send_priority_signal(traffic_lights: TrafficLights, vehicle: Vehicle):
         os.kill(traffic_lights.pid, signal.SIGUSR1)
 
 
-def clear_a_vehicle(source: Direction):
+def remove_vehicle_from_source(source: Direction):
     """
     Removes one vehicle from the message queue for the given source direction.
     """
@@ -95,30 +98,30 @@ def clear_a_vehicle(source: Direction):
         queue_free.set()
 
 
-def clear_all_vehicles():
+def remove_all_vehicles():
     """
-    Clear all vehicles from all directions but not remove any message queue 
+    Remove all vehicles from all directions but not remove any message queue 
     """
     for mq in [sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[source], sysv_ipc.IPC_CREAT) for source in Direction]:
         while mq.current_messages > 0:
             mq.receive()
-        queue_free.set
+        queue_free.set()
     print(f"\n[Clear Vehicles] All vehicles are removed !\n")
 
 
 if __name__ == "__main__":
-    clear_all_vehicles()
+    remove_all_vehicles()
 
     source = Direction.NORTH
 
-    normal_thread = threading.Thread(target=normal_traffic_gen, args=(source,))
-    priority_thread = threading.Thread(target=priority_traffic_gen, args=(source,))
+    normal_process = multiprocessing.Process(target=normal_traffic_gen, args=(source,))
+    priority_process = multiprocessing.Process(target=priority_traffic_gen, args=(source,))
 
-    normal_thread.start()
-    priority_thread.start()
+    normal_process.start()
+    priority_process.start()
 
     sleep(15)
-    clear_a_vehicle(Direction.NORTH)
+    remove_vehicle_from_source(Direction.NORTH)
 
-    normal_thread.join()
-    priority_thread.join()
+    normal_process.join()
+    priority_process.join()
