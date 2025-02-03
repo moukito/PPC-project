@@ -6,6 +6,7 @@ from typing import Dict, List
 from Vehicle import Vehicle
 from Direction import Direction
 from Lights import TrafficLights
+from LightColor import LightColor
 from crossroad_simulation.TimeManager import TimeManager
 
 
@@ -55,9 +56,10 @@ class Coordinator(multiprocessing.Process):
 
 	def move_vehicle(self):
 		self.lights_event.wait()
+
 		green_roads = []
 		for direction, vehicle_list in self.roads.items():
-			if self.lights_state[direction].value == 0:  # todo : green value
+			if self.lights_state[direction].value == LightColor.GREEN:
 				green_roads.append(direction)
 		
 		if len(green_roads) == 1:
