@@ -1,4 +1,4 @@
-from Direction import Direction
+from crossroad_simulation.Direction import Direction
 from random import sample
 
 TYPES = ["normal", "priority"]
