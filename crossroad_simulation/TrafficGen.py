@@ -26,23 +26,23 @@ def normal_traffic_gen(source: Direction):
 
         while True:
             with lock:  # Lock access to the message queue
-                print(f"[Queue Status] {source.name}: {mq.current_messages}/{MAX_VEHICLES_IN_QUEUE}")
+                print(f"[Queue Status] {source.value}: {mq.current_messages}/{MAX_VEHICLES_IN_QUEUE}")
 
                 if mq.current_messages < MAX_VEHICLES_IN_QUEUE:
                     vehicle = Vehicle("normal", source, None)
                     message = str(vehicle).encode()
                     mq.send(message)
-                    print(f"[Normal Traffic Generator] Sent normal vehicle on {source.name}\n")
+                    print(f"[Normal Traffic Generator] Sent normal vehicle on {source.value}\n")
                     queue_free.set()  # Indicate the queue has space
                 else:
                     queue_free.clear()  # Indicate the queue is full
-                    print(f"[Normal Traffic Generator] Path for {source.name} is congested! Blocking new vehicles...\n")
+                    print(f"[Normal Traffic Generator] Path for {source.value} is congested! Blocking new vehicles...\n")
 
                     queue_free.wait()  # Wait until the queue has space
             sleep(uniform(1, 3))  # Pause before adding another vehicle
 
     except sysv_ipc.ExistentialError:
-        print(f"[Normal Traffic Generator] Error: Message queue for {source.name} already exists!")
+        print(f"[Normal Traffic Generator] Error: Message queue for {source.value} already exists!")
     except Exception as e:
         print(f"[Normal Traffic Generator] Error: {e}")
 
@@ -56,22 +56,22 @@ def priority_traffic_gen(source: Direction):
 
         while True:
             with lock:  # Lock access to the message queue
-                print(f"[Queue Status] {source.name}: {mq.current_messages}/{MAX_VEHICLES_IN_QUEUE}")
+                print(f"[Queue Status] {source.value}: {mq.current_messages}/{MAX_VEHICLES_IN_QUEUE}")
 
                 if mq.current_messages < MAX_VEHICLES_IN_QUEUE:
                     vehicle = Vehicle("priority", source, None)
                     message = str(vehicle).encode()
                     mq.send(message)
-                    print(f"[Priority Traffic Generator] Sent priority vehicle on {source.name}\n")
+                    print(f"[Priority Traffic Generator] Sent priority vehicle on {source.value}\n")
                     queue_free.set()  # Indicate the queue has space
                 else:
                     queue_free.clear()  # Indicate the queue is full
-                    print(f"[Priority Traffic Generator] Path for {source.name} is congested! Blocking new vehicles...\n")
+                    print(f"[Priority Traffic Generator] Path for {source.value} is congested! Blocking new vehicles...\n")
                     queue_free.wait()  # Wait until the queue has space
             sleep(uniform(1, 3))  # Pause before adding another vehicle
 
     except sysv_ipc.ExistentialError:
-        print(f"[Priority Traffic Generator] Error: Message queue for {source.name} already exists!")
+        print(f"[Priority Traffic Generator] Error: Message queue for {source.value} already exists!")
     except Exception as e:
         print(f"[Priority Traffic Generator] Error: {e}")
 
@@ -94,7 +94,7 @@ def remove_vehicle_from_source(source: Direction):
 
     if mq.current_messages > 0:
         message, _ = mq.receive()
-        print(f"[Clear Vehicle] Removed: {message.decode()} from {source.name}")
+        print(f"[Clear Vehicle] Removed: {message.decode()} from {source.value}")
         queue_free.set()
 
 
