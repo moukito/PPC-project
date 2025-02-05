@@ -4,10 +4,10 @@ import signal
 import os
 from random import uniform, choices
 from time import sleep
-from Vehicle import Vehicle
-from Direction import Direction
-from Lights import TrafficLights
-from TimeManager import TimeManager
+from crossroad_simulation.Vehicle import Vehicle
+from crossroad_simulation.Direction import Direction
+from crossroad_simulation.Lights import TrafficLights
+from crossroad_simulation.TimeManager import TimeManager
 
 # Define System V message queue keys
 MESSAGE_QUEUE_KEYS = {direction: 1000 + i for i, direction in enumerate(Direction)}

@@ -1,6 +1,6 @@
 import socket
 import curses
-from TrafficGen import MAX_VEHICLES_IN_QUEUE
+from crossroad_simulation.TrafficGen import MAX_VEHICLES_IN_QUEUE
 
 HOST = "localhost"
 PORT = 6666
