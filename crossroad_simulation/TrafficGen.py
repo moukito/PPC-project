@@ -80,7 +80,7 @@ def remove_vehicle_from_source(source: Direction, queue_event: multiprocessing.E
 
     if mq.current_messages > 0:
         message, _ = mq.receive()
-        print(f"[Clear Vehicle] Removed: {message.decode()} from {source.name}")
+        print(f"[Clear Vehicle] Removed: {message.decode()} from {source.value}")
         queue_event.set()  # Allow new vehicles to enter queue
 
 
