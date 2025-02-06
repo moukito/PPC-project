@@ -21,6 +21,7 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 		"""Initialize shared memory for four traffic lights and priority event."""
 		super().__init__()
 		self.lights_state = {direction: Value('i', LightColor.RED.value) for direction in Direction}  # Shared light states
+		self.lock = multiprocessing.Lock()
 		self.priority_direction = multiprocessing.Value('i', -1)  # Stores the index of the priority direction
 		self.event = multiprocessing.Event()
 		signal.signal(signal.SIGUSR1, self.priority_signal_handler)
@@ -64,11 +65,11 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 		new_ew = LightColor.RED.value if new_ns == LightColor.GREEN.value else LightColor.GREEN.value
 
 		for direction in [Direction.NORTH, Direction.SOUTH]:
-			with self.lights_state[direction].get_lock():
+			with self.lock:
 				self.lights_state[direction] = new_ns
 
 		for direction in [Direction.EAST, Direction.WEST]:
-			with self.lights_state[direction].get_lock():
+			with self.lock:
 				self.lights_state[direction] = new_ew
 
 		print(
@@ -84,11 +85,11 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 
 		# Set all lights to RED first
 		for direction in Direction:
-			with self.lights_state[direction].get_lock():
+			with self.lock:
 				self.lights_state[direction] = LightColor.RED.value
 
 		# Set only the priority direction to GREEN
-		with self.lights_state[priority_dir].get_lock():
+		with self.lock:
 			self.lights_state[priority_dir] = LightColor.GREEN.value
 
 		print(f"[TrafficLights] Priority vehicle detected! Green light for {priority_dir}, all others set to RED.")
@@ -103,15 +104,19 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 		elif signum == signal.SIGUSR2:
 			self.event.set()
 
-	def set_priority_direction(self, direction: str):
+	def set_priority_direction(self, direction: Direction):
 		"""Sets the priority direction before sending the signal."""
-		if direction in Direction:
-			self.priority_direction.value = Direction(direction).value
-			print(f"[TrafficLights] Priority vehicle approaching from {direction}")
+		self.priority_direction.value = direction.value
+		print(f"[TrafficLights] Priority vehicle approaching from {direction}")
 
 	@staticmethod
 	def getpid():
 		return os.getpid()
+
+	def send_signal(self, direction: Direction):
+		with self.lock:
+			traffic_lights.set_priority_direction(direction)
+			os.kill(self.getpid(), signal.SIGUSR1)
 
 
 if __name__ == "__main__":
@@ -123,9 +128,7 @@ if __name__ == "__main__":
 
 	try:
 		coordinator_event.set()
-		with traffic_lights.priority_direction.get_lock(): # todo : factorise it
-			traffic_lights.set_priority_direction("North")
-			os.kill(traffic_lights.pid, signal.SIGUSR1)
+		traffic_lights.send_signal(Direction.NORTH)
 		time.sleep(4)
 		os.kill(traffic_lights.pid, signal.SIGUSR2)
 		traffic_lights.join()
