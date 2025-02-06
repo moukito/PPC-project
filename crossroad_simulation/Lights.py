@@ -65,11 +65,11 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 
 		for direction in [Direction.NORTH, Direction.SOUTH]:
 			with self.lights_state[direction].get_lock():
-				self.lights_state[direction].value = new_ns
+				self.lights_state[direction] = new_ns
 
 		for direction in [Direction.EAST, Direction.WEST]:
 			with self.lights_state[direction].get_lock():
-				self.lights_state[direction].value = new_ew
+				self.lights_state[direction] = new_ew
 
 		print(
 			f"[TrafficLights] Normal mode: North-South {'GREEN' if new_ns == LightColor.GREEN else 'RED'}, East-West {'GREEN' if new_ew == LightColor.GREEN else 'RED'}")
@@ -85,11 +85,11 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 		# Set all lights to RED first
 		for direction in Direction:
 			with self.lights_state[direction].get_lock():
-				self.lights_state[direction].value = LightColor.RED
+				self.lights_state[direction] = LightColor.RED
 
 		# Set only the priority direction to GREEN
 		with self.lights_state[priority_dir].get_lock():
-			self.lights_state[priority_dir].value = LightColor.GREEN
+			self.lights_state[priority_dir] = LightColor.GREEN
 
 		print(f"[TrafficLights] Priority vehicle detected! Green light for {priority_dir}, all others set to RED.")
 
@@ -108,6 +108,10 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 		if direction in Direction:
 			self.priority_direction.value = Direction(direction).value
 			print(f"[TrafficLights] Priority vehicle approaching from {direction}")
+
+	@staticmethod
+	def getpid():
+		return os.getpid()
 
 
 if __name__ == "__main__":
