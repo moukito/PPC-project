@@ -17,10 +17,11 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 	- Priority mode: Only the light in the direction of the priority vehicle's approach turns green.
 	"""
 
-	def __init__(self, lights_event, coordinator_event, time_manager=TimeManager("auto", 0)):
+	def __init__(self, shared_lights, lights_event, coordinator_event, time_manager=TimeManager("auto", 0)):
 		"""Initialize shared memory for four traffic lights and priority event."""
 		super().__init__()
-		self.lights_state = {direction: Value('i', LightColor.RED.value) for direction in Direction}  # Shared light states
+		self.lights_state = shared_lights
+		self.lights_state = {direction: LightColor.RED.value for direction in Direction}  # Shared light states
 		self.lock = multiprocessing.Lock()
 		self.priority_direction = multiprocessing.Value('i', -1)  # Stores the index of the priority direction
 		self.event = multiprocessing.Event()
