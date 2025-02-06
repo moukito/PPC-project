@@ -56,6 +56,7 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 			self.move_vehicle()
 			for direction, road in self.roads.items():
 				print(direction, " : ", len(road))
+			print("\n")
 			self.next()
 
 	def next(self, unit=1):
