@@ -2,8 +2,10 @@ import multiprocessing
 import os
 import random
 import signal
-
+import socket
+import json
 import sysv_ipc
+
 from typing import Dict, List
 from crossroad_simulation.Vehicle import Vehicle
 from crossroad_simulation.Direction import Direction
@@ -12,6 +14,8 @@ from crossroad_simulation.LightColor import LightColor
 from crossroad_simulation.TimeManager import TimeManager
 from crossroad_simulation.Timemanipulator import Timemanipulator
 
+HOST = "localhost"
+PORT = 6666
 
 class Coordinator(multiprocessing.Process, Timemanipulator):
 	"""
@@ -103,3 +107,34 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 		if len(self.roads[d1]) != 0 and (len(self.roads[d2]) == 0 or self.roads[d1][0].destination != self.roads[d2][0].destination.get_right()):
 			print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
 			results.append(self.roads[d1].pop)
+
+
+def send_to_display(coordinator: Coordinator, time_manager: TimeManager):
+    """
+    Continuously sends traffic updates from the Coordinator to Display via socket.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+        try:
+            client_socket.connect((HOST, PORT))
+            print(f"[Coordinator] Connected to Display on {HOST}:{PORT}")
+
+            while True:
+                for direction, vehicle_list in coordinator.roads.items():
+                    try:
+                        message, _ = vehicle_list.receive(block=False)  # No-blocking
+                        vehicle = message.decode()
+
+                        formatted_message = json.dumps({"direction": direction, "vehicle": vehicle})
+                        client_socket.sendall(formatted_message.encode())
+
+                    except sysv_ipc.BusyError:
+                        pass
+                
+                time_manager.sleep(1)
+
+        except ConnectionRefusedError:
+            print("[Coordinator] Impossible to connect with Display, make sure Display is launched.")
+        except socket.error as e:
+            print(f"[Coordinator] Socket Error: {e}")
+        except Exception as e:
+            print(f"[Coordinator] Error: {e}")
