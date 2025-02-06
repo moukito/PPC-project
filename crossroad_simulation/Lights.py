@@ -86,9 +86,6 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 			with self.lock:
 				self.lights_state[direction] = new_ew
 
-		print(
-			f"[TrafficLights] Normal mode: North-South {'GREEN' if new_ns == LightColor.GREEN.value else 'RED'}, East-West {'GREEN' if new_ew == LightColor.GREEN.value else 'RED'}")
-
 	def handle_priority_vehicle(self):
 		"""
 		Turns only the priority direction's light green while setting all others to red.
@@ -106,8 +103,6 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 		with self.lock:
 			self.lights_state[priority_dir] = LightColor.GREEN.value
 
-		print(f"[TrafficLights] Priority vehicle detected! Green light for {priority_dir}, all others set to RED.")
-
 	def priority_signal_handler(self, signum, frame):
 		"""
 		Handles SIGUSR1 signal for priority vehicle detection.
@@ -115,7 +110,6 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 		:param signum: Signal number.
 		:param frame: Current stack frame.
 		"""
-		print("[TrafficLights] Received priority vehicle signal!")
 		if signum == signal.SIGUSR1:
 			if self.priority_direction != -1:
 				self.queue.put(self.priority_direction)
@@ -130,7 +124,6 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 		:param direction: Direction of the priority vehicle.
 		"""
 		self.priority_direction = direction.value
-		print(f"[TrafficLights] Priority vehicle approaching from {direction}")
 
 	@staticmethod
 	def getpid():

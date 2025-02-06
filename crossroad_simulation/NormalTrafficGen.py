@@ -51,17 +51,11 @@ class NormalTrafficGen(multiprocessing.Process, TimeManipulator):
         :param vehicle: Vehicle instance to be sent.
         """
         try:
-            print(f"[TrafficGen] Queue Status : {vehicle.source.name}: {self.traffic_queues[vehicle.source].current_messages}/{MAX_VEHICLES_IN_QUEUE}\n")
             if self.traffic_queues[vehicle.source].current_messages < MAX_VEHICLES_IN_QUEUE:
                 message = str(vehicle).encode()
                 self.traffic_queues[vehicle.source].send(message)
-                print(f"[TrafficGen] Sent {vehicle.type} vehicle from {vehicle.source}\n")
-            else:
-                print(f"[TrafficGen] Queue full for {vehicle.source}. Waiting for space...\n")
         except sysv_ipc.ExistentialError:
-            print(f"[TrafficGen] Error: Message queue for {vehicle.source} does not exist!\n")
-        except Exception as e:
-            print(f"[TrafficGen] Error: {e}\n")
+            pass
 
     def next(self, unit=1):
         """

@@ -16,6 +16,7 @@ from crossroad_simulation.TimeManipulator import TimeManipulator
 HOST = "localhost"
 PORT = 6666
 
+
 class Coordinator(multiprocessing.Process, TimeManipulator):
 	"""
 	Manages vehicle movement at the intersection.
@@ -53,6 +54,8 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 		while True:
 			self.accept_traffic()
 			self.move_vehicle()
+			for road in self.roads.values():
+				print(len(road))
 			self.next()
 
 	def next(self, unit=1):
@@ -80,10 +83,6 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 				self.roads[direction].append(vehicle)
 			except sysv_ipc.BusyError:
 				pass
-			except sysv_ipc.ExistentialError:
-				print(f"[Coordinator] Error: Message queue for {direction.value} does not exist!\n")
-			except Exception as e:
-				print(f"[Coordinator] Error: {e}\n")
 
 	def move_vehicle(self):
 		"""
@@ -99,7 +98,6 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 		if len(green_roads) == 1:
 			direction = green_roads[0]
 			if self.roads[direction]:
-				print(f"[Coordinator] Moving vehicle from {direction}.")
 				if self.roads[direction].pop(0).type == "priority":
 					os.kill(self.light_pid, signal.SIGUSR2)
 
@@ -113,10 +111,8 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 			if len(results) == 0:
 				r = random.random()
 				if len(self.roads[d1]) != 0 and r < 0.5:
-					print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
 					self.roads[d1].pop(0)
 				elif len(self.roads[d2]) != 0:
-					print(f"[Coordinator] Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
 					self.roads[d2].pop(0)
 
 			for result in results:
@@ -131,23 +127,21 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 		:param results: List to store the results of the priority check.
 		"""
 		if len(self.roads[d1]) != 0 and (len(self.roads[d2]) == 0 or self.roads[d1][0].destination != self.roads[d2][0].destination.get_right()):
-			print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
 			results.append(self.roads[d1].pop)
 
 
 def send_updates_to_display(coordinator: Coordinator):
-    """
-    Sends periodic traffic updates to Display via socket.
-    """
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        client_socket.connect((HOST, PORT))
-        print("[Coordinator] Connected to Display.")
+	"""
+	Sends periodic traffic updates to Display via socket.
+	"""
+	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+		client_socket.connect((HOST, PORT))
 
-        while True:
-            for direction, light in coordinator.lights_state.items():
-                vehicles = len(coordinator.roads.get(direction, []))
+		while True:
+			for direction, light in coordinator.lights_state.items():
+				vehicles = len(coordinator.roads.get(direction, []))
 
-                message = f"direction: {direction.name}, light: {light.name}, vehicles: {vehicles}"
-                client_socket.sendall(message.encode())
+				message = f"direction: {direction.name}, light: {light.name}, vehicles: {vehicles}"
+				client_socket.sendall(message.encode())
 
-            time.sleep(1)  # Send updates every second
+			time.sleep(1)
