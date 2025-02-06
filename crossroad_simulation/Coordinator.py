@@ -32,7 +32,7 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 		self.roads: Dict[Direction, List[Vehicle]] = {direction: [] for direction in Direction}
 		self.traffic_queues = {direction: sysv_ipc.MessageQueue(key, sysv_ipc.IPC_CREAT) for key, direction in zip(range(1000, 1004), Direction)}  # Unique keys for queues
 
-	def process_traffic(self):
+	def run(self):
 		"""Main loop that processes traffic from all directions."""
 		while True:
 			self.accept_traffic()
