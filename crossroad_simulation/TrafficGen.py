@@ -19,13 +19,12 @@ class TrafficGen(multiprocessing.Process, Timemanipulator):
     - Handles both normal and priority vehicles.
     - Uses an event to prevent queue congestion.
     """
-    def __init__(self, source: Direction, vehicle_type: str, queue_event: multiprocessing.Event, lock: multiprocessing.Lock, 
+    def __init__(self, source: Direction, vehicle_type: str, queue_event: multiprocessing.Event,
                  traffic_lights: TrafficLights, time_manager = TimeManager("auto", 1)):
         super().__init__()
         self.source = source
         self.vehicle_type = vehicle_type
         self.queue_event = queue_event  # Unique event per direction
-        self.lock = lock # Unique lock per message queue
         self.traffic_lights = traffic_lights
         self.time_manager = time_manager
         
@@ -39,38 +38,6 @@ class TrafficGen(multiprocessing.Process, Timemanipulator):
             mq = sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[self.source], sysv_ipc.IPC_CREAT)
 
             while True:
-                with self.lock:
-                    print(f"[Queue Status] {self.source.name}: {mq.current_messages}/{MAX_VEHICLES_IN_QUEUE}\n")
-
-                    if mq.current_messages < MAX_VEHICLES_IN_QUEUE:
-                        vehicle = Vehicle(self.vehicle_type, self.source, None)
-                        message = str(vehicle).encode()
-                        mq.send(message)
-                        print(f"[TrafficGen] Sent {self.vehicle_type} vehicle from {self.source}\n")
-
-                        # If it's a priority vehicle, notify TrafficLights
-                        if self.vehicle_type == "priority":
-                            self.send_priority_signal(vehicle)
-
-                        self.queue_event.set()  # Indicate that a new vehicle is added
-                    else:
-                        self.queue_event.clear()  # Queue full, wait before adding more
-                        print(f"[TrafficGen] Queue full for {self.source}. Waiting for space...\n")
-                        self.queue_event.wait()
-                if self.vehicle_type == "priority":
-                    self.time_manager.sleep(30)
-                else:
-                    self.time_manager.sleep(2)
-
-        except sysv_ipc.ExistentialError:
-            print(f"[TrafficGen] Error: Message queue for {self.source} does not exist!\n")
-        except Exception as e:
-            print(f"[TrafficGen] Error: {e}\n")
-
-    def next(self, unit=1):
-        try:
-            mq = sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[self.source], sysv_ipc.IPC_CREAT)
-            with self.lock:
                 print(f"[Queue Status] {self.source.name}: {mq.current_messages}/{MAX_VEHICLES_IN_QUEUE}\n")
 
                 if mq.current_messages < MAX_VEHICLES_IN_QUEUE:
@@ -88,6 +55,36 @@ class TrafficGen(multiprocessing.Process, Timemanipulator):
                     self.queue_event.clear()  # Queue full, wait before adding more
                     print(f"[TrafficGen] Queue full for {self.source}. Waiting for space...\n")
                     self.queue_event.wait()
+                if self.vehicle_type == "priority":
+                    self.time_manager.sleep(30)
+                else:
+                    self.time_manager.sleep(2)
+
+        except sysv_ipc.ExistentialError:
+            print(f"[TrafficGen] Error: Message queue for {self.source} does not exist!\n")
+        except Exception as e:
+            print(f"[TrafficGen] Error: {e}\n")
+
+    def next(self, unit=1):
+        try:
+            mq = sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[self.source], sysv_ipc.IPC_CREAT)
+            print(f"[Queue Status] {self.source.name}: {mq.current_messages}/{MAX_VEHICLES_IN_QUEUE}\n")
+
+            if mq.current_messages < MAX_VEHICLES_IN_QUEUE:
+                vehicle = Vehicle(self.vehicle_type, self.source, None)
+                message = str(vehicle).encode()
+                mq.send(message)
+                print(f"[TrafficGen] Sent {self.vehicle_type} vehicle from {self.source}\n")
+
+                # If it's a priority vehicle, notify TrafficLights
+                if self.vehicle_type == "priority":
+                    self.send_priority_signal(vehicle)
+
+                self.queue_event.set()  # Indicate that a new vehicle is added
+            else:
+                self.queue_event.clear()  # Queue full, wait before adding more
+                print(f"[TrafficGen] Queue full for {self.source}. Waiting for space...\n")
+                self.queue_event.wait()
             if self.vehicle_type == "priority":
                 self.time_manager.sleep(30*unit)
             else:

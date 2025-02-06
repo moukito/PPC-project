@@ -22,7 +22,7 @@ from .LightColor import LightColor
 from .Direction import Direction
 from .Lights import TrafficLights
 from .Coordinator import Coordinator
-#from .TrafficGen import normal_traffic_gen, priority_traffic_gen
+from .TrafficGen import TrafficGen
 #from .display import Display
 #from .config import SIMULATION_SETTINGS
 
@@ -31,8 +31,7 @@ __all__ = [
 	"Direction",
 	"TrafficLights",
 	"Coordinator",
-#	"normal_traffic_gen",
-#	"priority_traffic_gen",
+	"TrafficGen"
 #	"Display",
 #	"SIMULATION_SETTINGS",
 ]
