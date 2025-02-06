@@ -1,5 +1,8 @@
 import multiprocessing
+import os
 import random
+import signal
+
 import sysv_ipc
 from typing import Dict, List
 from crossroad_simulation.Vehicle import Vehicle
@@ -18,13 +21,14 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 	- Detects priority vehicles and signals the traffic lights immediately.
 	"""
 
-	def __init__(self, coordinator_event: multiprocessing.Event, lights_event: multiprocessing.Event, lights_state: dict, time_manager: TimeManager = TimeManager("auto", 0)) -> None:
+	def __init__(self, coordinator_event: multiprocessing.Event, lights_event: multiprocessing.Event, lights_state: dict, light_pid, time_manager: TimeManager = TimeManager("auto", 0)) -> None:
 		"""Initialize the coordinator with SysV message queues and traffic lights."""
 		super().__init__()
 		self.time_manager = time_manager
 		self.coordinator_event = coordinator_event
 		self.lights_event = lights_event
 		self.lights_state = lights_state
+		self.light_pid = light_pid
 		self.roads: Dict[Direction, List[Vehicle]] = {direction: [] for direction in Direction}
 		self.traffic_queues = {direction: sysv_ipc.MessageQueue(key, sysv_ipc.IPC_CREAT) for key, direction in zip(range(1000, 1004), Direction)}  # Unique keys for queues
 
@@ -59,14 +63,15 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 
 		green_roads = []
 		for direction, vehicle_list in self.roads.items():
-			if self.lights_state[direction].value == LightColor.GREEN:
+			if self.lights_state[direction] == LightColor.GREEN.value:
 				green_roads.append(direction)
 		
 		if len(green_roads) == 1:
 			direction = green_roads[0]
 			if self.roads[direction]:
 				print(f"[Coordinator] Moving vehicle from {direction}.")
-				self.roads[direction].pop(0)
+				if self.roads[direction].pop(0).type == "priority":
+					os.kill(self.light_pid, signal.SIGUSR2)
 
 		elif len(green_roads) == 2:
 			d1, d2 = green_roads

@@ -20,7 +20,7 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 	def __init__(self, lights_event, coordinator_event, time_manager=TimeManager("auto", 0)):
 		"""Initialize shared memory for four traffic lights and priority event."""
 		super().__init__()
-		self.lights_state = {direction: Value('i', LightColor.RED) for direction in Direction}  # Shared light states
+		self.lights_state = {direction: Value('i', LightColor.RED.value) for direction in Direction}  # Shared light states
 		self.priority_direction = multiprocessing.Value('i', -1)  # Stores the index of the priority direction
 		self.event = multiprocessing.Event()
 		signal.signal(signal.SIGUSR1, self.priority_signal_handler)
@@ -57,22 +57,22 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 
 	def toggle_normal_cycle(self):
 		"""Switches traffic lights in normal mode (North-South green, East-West red, then switch)."""
-		current_ns = self.lights_state[Direction.NORTH].value  # Get current North-South light state
+		current_ns = self.lights_state[Direction.NORTH]  # Get current North-South light state
 
 		# Toggle states: North-South and East-West must be opposite
-		new_ns = LightColor.GREEN if current_ns == LightColor.RED else LightColor.RED
-		new_ew = LightColor.RED if new_ns == LightColor.GREEN else LightColor.GREEN
+		new_ns = LightColor.GREEN.value if current_ns == LightColor.RED.value else LightColor.RED.value
+		new_ew = LightColor.RED.value if new_ns == LightColor.GREEN.value else LightColor.GREEN.value
 
 		for direction in [Direction.NORTH, Direction.SOUTH]:
 			with self.lights_state[direction].get_lock():
-				self.lights_state[direction].value = new_ns
+				self.lights_state[direction] = new_ns
 
 		for direction in [Direction.EAST, Direction.WEST]:
 			with self.lights_state[direction].get_lock():
-				self.lights_state[direction].value = new_ew
+				self.lights_state[direction] = new_ew
 
 		print(
-			f"[TrafficLights] Normal mode: North-South {'GREEN' if new_ns == LightColor.GREEN else 'RED'}, East-West {'GREEN' if new_ew == LightColor.GREEN else 'RED'}")
+			f"[TrafficLights] Normal mode: North-South {'GREEN' if new_ns == LightColor.GREEN.value else 'RED'}, East-West {'GREEN' if new_ew == LightColor.GREEN.value else 'RED'}")
 
 	def handle_priority_vehicle(self):
 		"""Turns only the priority direction's light green while setting all others to red."""
@@ -85,11 +85,11 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 		# Set all lights to RED first
 		for direction in Direction:
 			with self.lights_state[direction].get_lock():
-				self.lights_state[direction].value = LightColor.RED
+				self.lights_state[direction] = LightColor.RED.value
 
 		# Set only the priority direction to GREEN
 		with self.lights_state[priority_dir].get_lock():
-			self.lights_state[priority_dir].value = LightColor.GREEN
+			self.lights_state[priority_dir] = LightColor.GREEN.value
 
 		print(f"[TrafficLights] Priority vehicle detected! Green light for {priority_dir}, all others set to RED.")
 
@@ -108,6 +108,10 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 		if direction in Direction:
 			self.priority_direction.value = Direction(direction).value
 			print(f"[TrafficLights] Priority vehicle approaching from {direction}")
+
+	@staticmethod
+	def getpid():
+		return os.getpid()
 
 
 if __name__ == "__main__":
