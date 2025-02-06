@@ -6,16 +6,12 @@ It includes:
 - Traffic light management
 - Normal traffic cycling
 - Priority vehicle handling
-- Inter-process communication using signals and shared memory
 
 Modules:
 - lights: Controls the state of four independent traffic lights.
 - coordinator: Manages vehicle movements and priority logic.
-- normal_traffic_gen: Generates regular traffic.
-- priority_traffic_gen: Generates emergency vehicles.
-- display: Provides real-time visualization.
-- ipc: Handles inter-process communication (queues, shared memory, signals, sockets).
-- config: Stores simulation parameters.
+- NormalTrafficGen: Generates regular traffic.
+- PriorityTrafficGen: Generates priority vehicles.
 """
 
 from .LightColor import LightColor
@@ -24,6 +20,7 @@ from .Lights import TrafficLights
 from .Coordinator import Coordinator
 from .NormalTrafficGen import NormalTrafficGen
 from .PriorityTrafficGen import PriorityTrafficGen
+from .TimeManager import TimeManager
 
 
 __all__ = [
@@ -33,4 +30,5 @@ __all__ = [
 	"Coordinator",
 	"NormalTrafficGen",
 	"PriorityTrafficGen",
+	"TimeManager",
 ]
