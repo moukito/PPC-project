@@ -3,7 +3,7 @@ import os
 import random
 import signal
 import socket
-import json
+import time
 import sysv_ipc
 
 from typing import Dict, List
@@ -135,32 +135,19 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 			results.append(self.roads[d1].pop)
 
 
-def send_to_display(coordinator: Coordinator, time_manager: TimeManager):
+def send_updates_to_display(coordinator: Coordinator):
     """
-    Continuously sends traffic updates from the Coordinator to Display via socket.
+    Sends periodic traffic updates to Display via socket.
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-        try:
-            client_socket.connect((HOST, PORT))
-            print(f"[Coordinator] Connected to Display on {HOST}:{PORT}")
+        client_socket.connect((HOST, PORT))
+        print("[Coordinator] Connected to Display.")
 
-            while True:
-                for direction, vehicle_list in coordinator.roads.items():
-                    try:
-                        message, _ = vehicle_list.receive(block=False)  # No-blocking
-                        vehicle = message.decode()
+        while True:
+            for direction, light in coordinator.lights_state.items():
+                vehicles = len(coordinator.roads.get(direction, []))
 
-                        formatted_message = json.dumps({"direction": direction, "vehicle": vehicle})
-                        client_socket.sendall(formatted_message.encode())
+                message = f"direction: {direction.name}, light: {light.name}, vehicles: {vehicles}"
+                client_socket.sendall(message.encode())
 
-                    except sysv_ipc.BusyError:
-                        pass
-                
-                time_manager.sleep(1)
-
-        except ConnectionRefusedError:
-            print("[Coordinator] Impossible to connect with Display, make sure Display is launched.")
-        except socket.error as e:
-            print(f"[Coordinator] Socket Error: {e}")
-        except Exception as e:
-            print(f"[Coordinator] Error: {e}")
+            time.sleep(1)  # Send updates every second

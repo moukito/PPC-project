@@ -26,10 +26,13 @@ if __name__ == "__main__":
 
 		coordinator = Coordinator(coordinator_event, light_event, lights.get_shared_lights_state(), lights.getpid(), traffic_queues, traffic_generators_event.values(), time_manager)
 
+		display = multiprocessing.Process(target=Display.run_display, args=(coordinator, ))
+
 		lights.start()
 		normal_traffic_generator.start()
 		priority_traffic_generator.start()
 		coordinator.start()
+		display.start()
 
 		try:
 			while True:
@@ -39,3 +42,4 @@ if __name__ == "__main__":
 			normal_traffic_generator.terminate()
 			priority_traffic_generator.terminate()
 			coordinator.terminate()
+			display.terminate()
