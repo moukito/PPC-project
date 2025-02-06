@@ -13,6 +13,7 @@ ROAD_WIDTH = 5 # This variable is not modifiable, because we suppose there's onl
                # which means 1 lane for entry and 1 lane for exit
 BUFFERSIZE = 1024
 
+
 def get_vehicles_entry():
     """
     Get vehicle entry position of 4 directions
@@ -21,6 +22,7 @@ def get_vehicles_entry():
             Direction.EAST: (MAX_VEHICLES_IN_QUEUE+1, MAX_VEHICLES_IN_QUEUE*2+ROAD_WIDTH-1),
             Direction.SOUTH: (MAX_VEHICLES_IN_QUEUE*2+ROAD_WIDTH-1, MAX_VEHICLES_IN_QUEUE+3), 
             Direction.WEST: (MAX_VEHICLES_IN_QUEUE+3, 0)}
+
 
 def get_vehicles_legal_entry_position():
     """
@@ -32,12 +34,14 @@ def get_vehicles_legal_entry_position():
             Direction.SOUTH: [(MAX_VEHICLES_IN_QUEUE+ROAD_WIDTH+i, MAX_VEHICLES_IN_QUEUE+3) for i in range(MAX_VEHICLES_IN_QUEUE)],
             Direction.WEST: [(MAX_VEHICLES_IN_QUEUE+3, i) for i in range(MAX_VEHICLES_IN_QUEUE-1, -1, -1)]}
 
+
 def get_vehivles_legal_exit_position():
     """
     Get vehivles legal exit positions of 4 directions sorted by the closest to the light to the
     farthest from the light
     """
     pass
+
 
 def get_lights_position():
     """
@@ -48,11 +52,13 @@ def get_lights_position():
             Direction.SOUTH: (MAX_VEHICLES_IN_QUEUE+ROAD_WIDTH, MAX_VEHICLES_IN_QUEUE+2), 
             Direction.WEST: (MAX_VEHICLES_IN_QUEUE+2, MAX_VEHICLES_IN_QUEUE-1)}
 
+
 def next():
     """
     
     """
     pass
+
 
 def print_vehicles(stdscr, coordinator: Coordinator):
     # Enable color mode
@@ -71,6 +77,7 @@ def print_vehicles(stdscr, coordinator: Coordinator):
             else:
                 stdscr.addch(y, x, write[source], curses.color_pair(1)) # mark priority vehicle in blue
 
+
 def print_lights(stdscr, coordinator: Coordinator):
     # Enable color mode
     curses.start_color()
@@ -83,7 +90,7 @@ def print_lights(stdscr, coordinator: Coordinator):
 
     for source, light in coordinator.lights_state.items():
         y, x = get_lights_position()[source]
-        if light == LightColor.RED:
+        if light == LightColor.RED.value:
             stdscr.addch(y, x, 'R', curses.color_pair(2)) # 'R' always written in red
         else:
             stdscr.addch(y, x, 'G', curses.color_pair(3)) # 'G' always written in green
