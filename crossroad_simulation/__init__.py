@@ -31,4 +31,6 @@ __all__ = [
 	"NormalTrafficGen",
 	"PriorityTrafficGen",
 	"TimeManager",
+	"Display",
+#	"SIMULATION_SETTINGS",
 ]

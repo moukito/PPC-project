@@ -3,8 +3,10 @@ import time
 import sysv_ipc
 
 from crossroad_simulation import *
+from crossroad_simulation.TimeManager import TimeManager
 
 if __name__ == "__main__":
+
 	with multiprocessing.Manager() as manager:
 		shared_lights = manager.dict({direction: LightColor.RED.value for direction in Direction})
 
