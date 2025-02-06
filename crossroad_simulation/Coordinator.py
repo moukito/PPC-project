@@ -15,7 +15,7 @@ from crossroad_simulation.TimeManager import TimeManager
 from crossroad_simulation.TimeManipulator import TimeManipulator
 
 HOST = "localhost"
-PORT = 6666
+PORT = 66666
 
 
 class Coordinator(multiprocessing.Process, TimeManipulator):
@@ -47,7 +47,7 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 		self.light_pid = light_pid
 		self.roads: Dict[Direction, List[Vehicle]] = {direction: [] for direction in Direction}
 		self.traffic_queues = traffic_queues
-		self.thread = threading.Thread(target=self.send_updates_to_display)
+		self.thread = threading.Thread(target=self.send_updates_to_display, daemon=True)
 		self.thread.start()
 
 	def run(self):
@@ -144,7 +144,7 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 				for direction, light in self.lights_state.items():
 					vehicles = len(self.roads.get(direction, []))
 
-					message = f"direction: {direction.name}, light: {light.name}, vehicles: {vehicles}"
+					message = f"direction: {direction.value}, light: {light}, vehicles: {vehicles}\n"
 					client_socket.sendall(message.encode())
 
 				time.sleep(1)

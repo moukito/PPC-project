@@ -2,13 +2,16 @@ import socket
 import time
 import curses
 import threading
+import queue as qe
+
+from crossroad_simulation import Vehicle
 from crossroad_simulation.NormalTrafficGen import MAX_VEHICLES_IN_QUEUE
 from crossroad_simulation.Direction import Direction
 from crossroad_simulation.Coordinator import Coordinator
 from crossroad_simulation.LightColor import LightColor
 
 HOST = "localhost"
-PORT = 6666
+PORT = 66666
 ROAD_WIDTH = 5
 BUFFERSIZE = 1024
 
@@ -56,38 +59,40 @@ def next():
     pass
 
 
-def print_vehicles(stdscr, coordinator: Coordinator):
+def print_vehicles(stdscr, queue):
     curses.start_color()
 
     curses.init_pair(1, curses.COLOR_YELLOW, curses.COLOR_BLACK)
 
     write = {Direction.NORTH: 'N', Direction.EAST: 'E', Direction.SOUTH: 'S', Direction.WEST: 'W'}
 
-    for source, vehicles in coordinator.roads.items():
-        for i in range(len(vehicles)):
-            y, x = get_vehicles_legal_entry_position()[source][i]
-            if vehicles[i].type == "normal":
-                stdscr.addch(y, x, write[source])
-            else:
-                stdscr.addch(y, x, write[source], curses.color_pair(1))
+    source = queue[0]
+    vehicles = queue[2]
+    for i in range(len(vehicles)):
+        y, x = get_vehicles_legal_entry_position()[source][i]
+        if vehicles[i].type == "normal":
+            stdscr.addch(y, x, write[source])
+        else:
+            stdscr.addch(y, x, write[source], curses.color_pair(1))
 
 
-def print_lights(stdscr, coordinator: Coordinator):
+def print_lights(stdscr, queue):
     curses.start_color()
 
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
 
     curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
 
-    for source, light in coordinator.lights_state.items():
-        y, x = get_lights_position()[source]
-        if light == LightColor.RED.value:
-            stdscr.addch(y, x, 'R', curses.color_pair(2))
-        else:
-            stdscr.addch(y, x, 'G', curses.color_pair(3))
+    source = queue[0]
+    light = queue[1]
+    y, x = get_lights_position()[source]
+    if light == LightColor.RED.value:
+        stdscr.addch(y, x, 'R', curses.color_pair(2))
+    else:
+        stdscr.addch(y, x, 'G', curses.color_pair(3))
 
 
-def draw(stdscr, coordinator: Coordinator):
+def draw(stdscr, queue):
     stdscr.nodelay(True)
     stdscr.clear()
 
@@ -112,8 +117,12 @@ def draw(stdscr, coordinator: Coordinator):
                     char = ' '
                 stdscr.addch(i, j, char)
 
-        print_vehicles(stdscr, coordinator)
-        print_lights(stdscr, coordinator)
+        try:
+            values = queue.get()
+            print_vehicles(stdscr, values)
+            print_lights(stdscr, values)
+        except queue.empty():
+            pass
 
         stdscr.addstr(size + 2, 0, "Press 'q' to quit.")
         stdscr.refresh()
@@ -125,59 +134,68 @@ def draw(stdscr, coordinator: Coordinator):
             break
 
 
-def receive_from_coordinator(coordinator: Coordinator):
+def receive_from_coordinator(queue):
     """
-    Continuously receives traffic updates from Coordinator via a socket 
+    Continuously receives traffic updates from Coordinator via a socket
     and updates the Coordinator object in real-time.
     """
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-        server_socket.bind((HOST, PORT))
-        server_socket.listen()
-        print(f"[Display] Listening for traffic updates on {HOST}:{PORT}...")
+    while True:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+            server_socket.bind((HOST, PORT))
+            server_socket.listen(1)
+            print(f"[Display] Listening for traffic updates on {HOST}:{PORT}...")
 
-        conn, addr = server_socket.accept()
-        with conn:
-            print(f"[Display] Connected to Coordinator at {addr}")
-            while True:
-                print("receiving data\n")
-                try:
-                    data = conn.recv(BUFFERSIZE)
-                    if not data:
+            conn, addr = server_socket.accept()
+            with conn:
+                print(f"[Display] Connected to Coordinator at {addr}")
+                while True:
+                    print("receiving data\n")
+                    try:
+                        data = conn.recv(BUFFERSIZE)
+                        if not data:
+                            break
+
+                        decoded_data = data.decode()
+                        print(f"[Traffic Update] {decoded_data}")
+
+                        update_coordinator_state(queue, decoded_data)
+
+                    except socket.error as e:
+                        print(f"[Display] Socket error: {e}")
                         break
 
-                    decoded_data = data.decode()
-                    print(f"[Traffic Update] {decoded_data}")
 
-                    update_coordinator_state(coordinator, decoded_data)
-
-                except socket.error as e:
-                    print(f"[Display] Socket error: {e}")
-                    break
-
-
-def update_coordinator_state(coordinator: Coordinator, data: str):
+def update_coordinator_state(queue, data: str):
     """
     Parses received data and updates the Coordinator object.
     Expected format: "direction: NORTH, light: RED, vehicles: 3"
     """
-    parts = data.split(", ")
-    state_update = {}
+    lines = data.strip().split("\n")
+    for line in lines:
+        parts = line.split(", ")
+        state_update = {}
 
-    for part in parts:
-        key, value = part.split(": ")
-        state_update[key.strip()] = value.strip()
+        for part in parts:
+            print(part)
+            key, value = part.split(": ")
+            state_update[key.strip()] = value.strip()
 
-    direction = Direction[state_update["direction"]]
-    coordinator.lights_state[direction] = LightColor[state_update["light"]]
-    coordinator.roads[direction] = ["Vehicle"] * int(state_update["vehicles"])
+        direction = Direction(state_update["direction"])
+        light = int(state_update["light"])
+        vehicle = Vehicle.str_to_vehicle(state_update["vehicles"])
 
-    print(f"[Updated] {direction} -> Light: {coordinator.lights_state[direction]}, Vehicles: {len(coordinator.roads[direction])}")
+        print(f"[Updated] {direction} -> Light: {light}, Vehicles: {vehicle}")
+
+        queue.put([direction, light, vehicle])
 
 
 def run_display(coordinator: Coordinator):
     """
     Runs the Display with curses while receiving updates from Coordinator.
     """
-    threading.Thread(target=receive_from_coordinator, args=(coordinator,), daemon=True).start()
+    queue = qe.Queue()
+    thread = threading.Thread(target=receive_from_coordinator, args=(queue,), daemon=True)
+    thread.start()
 
-    curses.wrapper(lambda stdscr: draw(stdscr, coordinator))
+    curses.wrapper(lambda stdscr: draw(stdscr, queue))
+    thread.join()
