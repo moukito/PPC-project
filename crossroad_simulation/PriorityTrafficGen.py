@@ -1,8 +1,6 @@
 import multiprocessing
 import random
-
-from NormalTrafficGen import NormalTrafficGen
-from crossroad_simulation import TrafficLights, Vehicle
+from crossroad_simulation import TrafficLights, Vehicle, NormalTrafficGen
 from crossroad_simulation.TimeManager import TimeManager
 
 
@@ -21,7 +19,9 @@ class PriorityTrafficGen(NormalTrafficGen):
 	def send_signal(func):
 		def wrapper(self, *args, **kwargs):
 			result = func(self, *args, **kwargs)
-			self.send_priority_signal(self, *args, **kwargs)
+			for arg in args:
+				if type(arg) is Vehicle:
+					self.send_priority_signal(self, arg)
 			print("[Priority Traffic Generated]")
 			return result
 

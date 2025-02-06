@@ -56,6 +56,8 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 				vehicle: Vehicle = message.decode()
 
 				self.roads[direction].append(vehicle)
+			except sysv_ipc.BusyError:
+				pass
 			except sysv_ipc.ExistentialError:
 				print(f"[Coordinator] Error: Message queue for {self.source} does not exist!\n")
 			except Exception as e:
@@ -81,20 +83,20 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 			results = []
 
 			if self.roads[d1][0].destination != self.roads[d2][0].destination.get_right():
-				print(f"Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
+				print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
 				results.append(self.roads[d1].pop)
 
 			if self.roads[d2][0].destination != self.roads[d1][0].destination.get_right():
-				print(f"Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
+				print(f"[Coordinator] Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
 				results.append(self.roads[d2].pop)
 
 			if len(results) == 0:
 				r = random.random()
 				if r < 0.5:
-					print(f"Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
+					print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
 					self.roads[d1].pop(0)
 				else:
-					print(f"Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
+					print(f"[Coordinator] Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
 					self.roads[d2].pop(0)
 
 			for result in results:

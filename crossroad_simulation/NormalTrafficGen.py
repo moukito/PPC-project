@@ -1,8 +1,6 @@
 import multiprocessing
 import random
 import sysv_ipc
-import signal
-import os
 from crossroad_simulation.Vehicle import Vehicle
 from crossroad_simulation.Direction import Direction
 from crossroad_simulation.Lights import TrafficLights
@@ -31,10 +29,10 @@ class NormalTrafficGen(multiprocessing.Process, Timemanipulator):
 
     def send_message(self, vehicle):
         try:
-            print(f"[TrafficGen] Queue Status : {vehicle.source.name}: {self.traffic_queues.current_messages}/{MAX_VEHICLES_IN_QUEUE}\n")
-            if self.traffic_queues.current_messages < MAX_VEHICLES_IN_QUEUE:
+            print(f"[TrafficGen] Queue Status : {vehicle.source.name}: {self.traffic_queues[vehicle.source].current_messages}/{MAX_VEHICLES_IN_QUEUE}\n")
+            if self.traffic_queues[vehicle.source].current_messages < MAX_VEHICLES_IN_QUEUE:
                 message = str(vehicle).encode()
-                self.traffic_queues.send(message)
+                self.traffic_queues[vehicle.source].send(message)
                 print(f"[TrafficGen] Sent {vehicle.type} vehicle from {vehicle.source}\n")
             else:
                 print(f"[TrafficGen] Queue full for {vehicle.source}. Waiting for space...\n")
