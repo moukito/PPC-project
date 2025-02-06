@@ -60,6 +60,9 @@ def next():
 
 
 def print_vehicles(stdscr, queue):
+    """
+    Print vehicles at corresponding position 
+    """
     curses.start_color()
 
     curses.init_pair(1, curses.COLOR_YELLOW, curses.COLOR_BLACK)
@@ -77,6 +80,9 @@ def print_vehicles(stdscr, queue):
 
 
 def print_lights(stdscr, queue):
+    """
+    Print lights at corresponding position
+    """
     curses.start_color()
 
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
@@ -93,6 +99,9 @@ def print_lights(stdscr, queue):
 
 
 def draw(stdscr, queue):
+    """
+    Draw in terminal the crossroad with vehicles and lights
+    """
     stdscr.nodelay(True)
     stdscr.clear()
 
@@ -168,7 +177,6 @@ def receive_from_coordinator(queue):
 def update_coordinator_state(queue, data: str):
     """
     Parses received data and updates the Coordinator object.
-    Expected format: "direction: NORTH, light: RED, vehicles: 3"
     """
     lines = data.strip().split("\n")
     for line in lines:
