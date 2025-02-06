@@ -56,9 +56,8 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 
 	def toggle_normal_cycle(self):
 		"""Switches traffic lights in normal mode (North-South green, East-West red, then switch)."""
-		current_ns = self.lights_state[Direction.NORTH]  # Get current North-South light state
+		current_ns = self.lights_state[Direction.NORTH]
 
-		# Toggle states: North-South and East-West must be opposite
 		new_ns = LightColor.GREEN.value if current_ns == LightColor.RED.value else LightColor.RED.value
 		new_ew = LightColor.RED.value if new_ns == LightColor.GREEN.value else LightColor.GREEN.value
 
@@ -77,16 +76,14 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 		"""Turns only the priority direction's light green while setting all others to red."""
 		priority_dir_index = self.queue.get()
 		if priority_dir_index == -1:
-			return  # No valid priority direction set
+			return
 
 		priority_dir = list(Direction)[priority_dir_index]
 
-		# Set all lights to RED first
 		for direction in Direction:
 			with self.lock:
 				self.lights_state[direction] = LightColor.RED.value
 
-		# Set only the priority direction to GREEN
 		with self.lock:
 			self.lights_state[priority_dir] = LightColor.GREEN.value
 

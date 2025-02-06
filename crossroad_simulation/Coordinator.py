@@ -51,7 +51,7 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 		"""Checks for priority vehicles and signals the traffic lights if needed."""
 		for direction, queue in self.traffic_queues.items():
 			try:
-				message, _ = queue.receive(block=False)  # Non-blocking check
+				message, _ = queue.receive(block=False)
 				str_vehicle: str = message.decode()
 				vehicle = Vehicle.str_to_vehicle(str_vehicle)
 
