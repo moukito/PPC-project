@@ -3,6 +3,7 @@ import os
 import random
 import signal
 import socket
+import threading
 import time
 import sysv_ipc
 
@@ -46,6 +47,8 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 		self.light_pid = light_pid
 		self.roads: Dict[Direction, List[Vehicle]] = {direction: [] for direction in Direction}
 		self.traffic_queues = traffic_queues
+		self.thread = threading.Thread(target=self.send_updates_to_display)
+		self.thread.start()
 
 	def run(self):
 		"""
@@ -130,19 +133,18 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 		if len(self.roads[d1]) != 0 and (len(self.roads[d2]) == 0 or self.roads[d1][0].destination != self.roads[d2][0].destination.get_right()):
 			results.append(self.roads[d1].pop)
 
+	def send_updates_to_display(self):
+		"""
+		Sends periodic traffic updates to Display via socket.
+		"""
+		with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+			client_socket.connect((HOST, PORT))
 
-def send_updates_to_display(coordinator: Coordinator):
-	"""
-	Sends periodic traffic updates to Display via socket.
-	"""
-	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
-		client_socket.connect((HOST, PORT))
+			while True:
+				for direction, light in self.lights_state.items():
+					vehicles = len(self.roads.get(direction, []))
 
-		while True:
-			for direction, light in coordinator.lights_state.items():
-				vehicles = len(coordinator.roads.get(direction, []))
+					message = f"direction: {direction.name}, light: {light.name}, vehicles: {vehicles}"
+					client_socket.sendall(message.encode())
 
-				message = f"direction: {direction.name}, light: {light.name}, vehicles: {vehicles}"
-				client_socket.sendall(message.encode())
-
-			time.sleep(1)
+				time.sleep(1)

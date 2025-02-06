@@ -139,6 +139,7 @@ def receive_from_coordinator(coordinator: Coordinator):
         with conn:
             print(f"[Display] Connected to Coordinator at {addr}")
             while True:
+                print("receiving data\n")
                 try:
                     data = conn.recv(BUFFERSIZE)
                     if not data:
