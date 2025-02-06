@@ -7,7 +7,7 @@ from crossroad_simulation.TimeManager import TimeManager
 
 if __name__ == "__main__":
 	with multiprocessing.Manager() as manager:
-		shared_lights = manager.dict({})
+		shared_lights = manager.dict({direction: LightColor.RED.value for direction in Direction})
 
 		time_manager = TimeManager("auto", 1)
 

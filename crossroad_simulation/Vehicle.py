@@ -20,6 +20,14 @@ class Vehicle:
     def __str__(self):
         return f"type: {self.type}\nsource: {self.source}\ndestination: {self.destination}\n"
 
+    @staticmethod
+    def str_to_vehicle(string):
+        lines = string.strip().split("\n")
+        vehicle_type = lines[0].split(": ")[1]
+        source = lines[1].split(": ")[1]
+        destination = lines[2].split(": ")[1]
+        return Vehicle(vehicle_type, source, destination)
+
 
 if __name__ == "__main__":
     vehicle = Vehicle("normal", Direction.NORTH, Direction.WEST)

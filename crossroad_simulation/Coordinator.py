@@ -53,13 +53,14 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 		for direction, queue in self.traffic_queues.items():
 			try:
 				message, _ = queue.receive(block=False)  # Non-blocking check
-				vehicle: Vehicle = message.decode()
+				str_vehicle: str = message.decode()
+				vehicle = Vehicle.str_to_vehicle(str_vehicle)
 
 				self.roads[direction].append(vehicle)
 			except sysv_ipc.BusyError:
 				pass
 			except sysv_ipc.ExistentialError:
-				print(f"[Coordinator] Error: Message queue for {self.source} does not exist!\n")
+				print(f"[Coordinator] Error: Message queue for {direction.value} does not exist!\n")
 			except Exception as e:
 				print(f"[Coordinator] Error: {e}\n")
 
@@ -82,22 +83,23 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 			d1, d2 = green_roads
 			results = []
 
-			if self.roads[d1][0].destination != self.roads[d2][0].destination.get_right():
-				print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
-				results.append(self.roads[d1].pop)
+			self.verify_priority(d1, d2, results)
 
-			if self.roads[d2][0].destination != self.roads[d1][0].destination.get_right():
-				print(f"[Coordinator] Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
-				results.append(self.roads[d2].pop)
+			self.verify_priority(d2, d1, results)
 
 			if len(results) == 0:
 				r = random.random()
-				if r < 0.5:
+				if len(self.roads[d1]) != 0 and r < 0.5:
 					print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
 					self.roads[d1].pop(0)
-				else:
+				elif len(self.roads[d2]) != 0:
 					print(f"[Coordinator] Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
 					self.roads[d2].pop(0)
 
 			for result in results:
 				result(0)
+
+	def verify_priority(self, d1, d2, results):
+		if len(self.roads[d1]) != 0 and self.roads[d1][0].destination != self.roads[d2][0].destination.get_right():
+			print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
+			results.append(self.roads[d1].pop)
