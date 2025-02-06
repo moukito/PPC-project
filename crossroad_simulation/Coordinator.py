@@ -25,7 +25,7 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 	- Detects priority vehicles and signals the traffic lights immediately.
 	"""
 
-	def __init__(self, coordinator_event: multiprocessing.Event, lights_event: multiprocessing.Event, lights_state: dict, light_pid, traffic_queues, traffic_generators, time_manager: TimeManager = TimeManager("auto", 0)) -> None:
+	def __init__(self, coordinator_event: multiprocessing.Event, lights_event: multiprocessing.Event, lights_state: dict, light_pid: int, traffic_queues, traffic_generators, time_manager: TimeManager = TimeManager("auto", 0)) -> None:
 		"""
 		Initialize the coordinator with SysV message queues and traffic lights.
 
@@ -54,8 +54,8 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 		while True:
 			self.accept_traffic()
 			self.move_vehicle()
-			for road in self.roads.values():
-				print(len(road))
+			for direction, road in self.roads.items():
+				print(direction, " : ", len(road))
 			self.next()
 
 	def next(self, unit=1):

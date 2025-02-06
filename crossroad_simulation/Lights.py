@@ -27,10 +27,11 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 		super().__init__()
 		self.lights_state = shared_lights
 		self.lock = multiprocessing.Lock()
-		self.priority_direction = -1
+		self.priority_direction = "default"
 		self.event = multiprocessing.Event()
 		signal.signal(signal.SIGUSR1, self.priority_signal_handler)
-		self.queue = queue.Queue()
+		signal.signal(signal.SIGUSR2, self.priority_signal_handler)
+		self.queue = multiprocessing.Queue()
 		self.lights_event = lights_event
 		self.coordinator_event = coordinator_event
 		self.time_manager = time_manager
@@ -90,11 +91,9 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 		"""
 		Turns only the priority direction's light green while setting all others to red.
 		"""
-		priority_dir_index = self.queue.get()
-		if priority_dir_index == -1:
+		priority_dir = Direction(self.queue.get())
+		if priority_dir == "default":
 			return
-
-		priority_dir = list(Direction)[priority_dir_index]
 
 		for direction in Direction:
 			with self.lock:
@@ -111,9 +110,9 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 		:param frame: Current stack frame.
 		"""
 		if signum == signal.SIGUSR1:
-			if self.priority_direction != -1:
+			if self.priority_direction != "default":
 				self.queue.put(self.priority_direction)
-				self.priority_direction = -1
+				self.priority_direction = "default"
 		elif signum == signal.SIGUSR2:
 			self.event.set()
 

@@ -49,7 +49,7 @@ class Direction(Enum):
 
 
 if __name__ == "__main__":
-	print(Direction.list())
+	print(Direction("north"))
 	direction = Direction.NORTH
 	print(direction)
 	print(direction.get_right())
