@@ -15,7 +15,7 @@ from crossroad_simulation.TimeManager import TimeManager
 from crossroad_simulation.TimeManipulator import TimeManipulator
 
 HOST = "localhost"
-PORT = 66666
+PORT = 14750
 
 
 class Coordinator(multiprocessing.Process, TimeManipulator):
@@ -102,6 +102,7 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 		if len(green_roads) == 1:
 			direction = green_roads[0]
 			if self.roads[direction]:
+				print(f"[Coordinator] Moving vehicle from {direction}.")
 				if self.roads[direction].pop(0).type == "priority":
 					os.kill(self.light_pid, signal.SIGUSR2)
 
@@ -115,8 +116,10 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 			if len(results) == 0:
 				r = random.random()
 				if len(self.roads[d1]) != 0 and r < 0.5:
+        			print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
 					self.roads[d1].pop(0)
 				elif len(self.roads[d2]) != 0:
+        			print(f"[Coordinator] Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
 					self.roads[d2].pop(0)
 
 			for result in results:
@@ -131,6 +134,7 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 		:param results: List to store the results of the priority check.
 		"""
 		if len(self.roads[d1]) != 0 and (len(self.roads[d2]) == 0 or self.roads[d1][0].destination != self.roads[d2][0].destination.get_right()):
+			print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
 			results.append(self.roads[d1].pop)
 
 	def send_updates_to_display(self):

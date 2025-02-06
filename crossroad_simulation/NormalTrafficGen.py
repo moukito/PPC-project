@@ -54,6 +54,7 @@ class NormalTrafficGen(multiprocessing.Process, TimeManipulator):
             if self.traffic_queues[vehicle.source].current_messages < MAX_VEHICLES_IN_QUEUE:
                 message = str(vehicle).encode()
                 self.traffic_queues[vehicle.source].send(message)
+                print(f"[TrafficGen] Sent {vehicle.type} vehicle from {vehicle.source}\n")
         except sysv_ipc.ExistentialError:
             pass
 
