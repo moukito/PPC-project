@@ -21,16 +21,17 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 	- Detects priority vehicles and signals the traffic lights immediately.
 	"""
 
-	def __init__(self, coordinator_event: multiprocessing.Event, lights_event: multiprocessing.Event, lights_state: dict, light_pid, time_manager: TimeManager = TimeManager("auto", 0)) -> None:
+	def __init__(self, coordinator_event: multiprocessing.Event, lights_event: multiprocessing.Event, lights_state: dict, light_pid, traffic_queues, traffic_generators, time_manager: TimeManager = TimeManager("auto", 0)) -> None:
 		"""Initialize the coordinator with SysV message queues and traffic lights."""
 		super().__init__()
+		self.traffic_generators = traffic_generators
 		self.time_manager = time_manager
 		self.coordinator_event = coordinator_event
 		self.lights_event = lights_event
 		self.lights_state = lights_state
 		self.light_pid = light_pid
 		self.roads: Dict[Direction, List[Vehicle]] = {direction: [] for direction in Direction}
-		self.traffic_queues = {direction: sysv_ipc.MessageQueue(key, sysv_ipc.IPC_CREAT) for key, direction in zip(range(1000, 1004), Direction)}  # Unique keys for queues
+		self.traffic_queues = traffic_queues
 
 	def run(self):
 		"""Main loop that processes traffic from all directions."""
@@ -43,6 +44,8 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 		self.coordinator_event.set()
 		self.time_manager.sleep(unit)
 		self.lights_event.wait()
+		for traffic in self.traffic_generators:
+			traffic.wait()
 		self.coordinator_event.clear()
 
 	def accept_traffic(self):
@@ -53,10 +56,10 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 				vehicle: Vehicle = message.decode()
 
 				self.roads[direction].append(vehicle)
-			except sysv_ipc.ExistentialError:  # todo check this
-				pass  # Queue not found (should not happen)
-			except sysv_ipc.BusyError:
-				pass  # No messages in queue
+			except sysv_ipc.ExistentialError:
+				print(f"[Coordinator] Error: Message queue for {self.source} does not exist!\n")
+			except Exception as e:
+				print(f"[Coordinator] Error: {e}\n")
 
 	def move_vehicle(self):
 		self.lights_event.wait()
@@ -96,15 +99,3 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 
 			for result in results:
 				result(0)
-
-
-if __name__ == "__main__":
-	traffic_lights = TrafficLights()
-	coordinator = Coordinator()
-	coordinator.start()
-
-	try:
-		coordinator.join()
-	except KeyboardInterrupt:
-		print("\n[Coordinator] Stopping simulation.")
-		coordinator.terminate()

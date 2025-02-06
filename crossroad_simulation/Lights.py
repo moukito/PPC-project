@@ -115,23 +115,5 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 
 	def send_signal(self, direction: Direction):
 		with self.lock:
-			traffic_lights.set_priority_direction(direction)
+			self.set_priority_direction(direction)
 			os.kill(self.getpid(), signal.SIGUSR1)
-
-
-if __name__ == "__main__":
-	lights_event = multiprocessing.Event()
-	coordinator_event = multiprocessing.Event()
-
-	traffic_lights = TrafficLights(lights_event, coordinator_event, TimeManager("auto", 2))
-	traffic_lights.start()
-
-	try:
-		coordinator_event.set()
-		traffic_lights.send_signal(Direction.NORTH)
-		time.sleep(4)
-		os.kill(traffic_lights.pid, signal.SIGUSR2)
-		traffic_lights.join()
-	except KeyboardInterrupt:
-		print("\n[TrafficLights] Stopping simulation.")
-		traffic_lights.terminate()
