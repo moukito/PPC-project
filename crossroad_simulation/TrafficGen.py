@@ -1,88 +1,78 @@
-from random import uniform
+import multiprocessing
+import sysv_ipc
+import signal
+import os
+from random import uniform, choices
 from time import sleep
 from crossroad_simulation.Vehicle import Vehicle
 from crossroad_simulation.Direction import Direction
 from crossroad_simulation.Lights import TrafficLights
-import sysv_ipc
-import multiprocessing
-import signal
-import os
+from crossroad_simulation.TimeManager import TimeManager
 
-
+# Define System V message queue keys
 MESSAGE_QUEUE_KEYS = {direction: 1000 + i for i, direction in enumerate(Direction)}
-MAX_VEHICLES_IN_QUEUE = 10
+MAX_VEHICLES_IN_QUEUE = 5  # Maximum queue size per direction
 
-
-def normal_traffic_gen(source: Direction, lock: multiprocessing.Lock, queue_event: multiprocessing.Event):
-    """ 
-    Generates normal vehicles with synchronization and congestion handling
+class TrafficGen(multiprocessing.Process):
     """
-    try:
-        mq = sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[source], sysv_ipc.IPC_CREAT)
-
-        while True:
-            with lock:  # Lock access to the message queue
-                print(f"[Queue Status] {source.value}: {mq.current_messages}/{MAX_VEHICLES_IN_QUEUE}")
-
-                if mq.current_messages < MAX_VEHICLES_IN_QUEUE:
-                    vehicle = Vehicle("normal", source, None)
-                    message = str(vehicle).encode()
-                    mq.send(message)
-                    print(f"[Normal Traffic Generator] Sent normal vehicle on {source.value}\n")
-                    queue_event.set()  # Indicate the queue has space
-                else:
-                    queue_event.clear()  # Indicate the queue is full
-                    print(f"[Normal Traffic Generator] Path for {source.value} is congested! Blocking new vehicles...\n")
-
-                    queue_event.wait()  # Wait until the queue has space
-            sleep(uniform(1, 3))  # Pause before adding another vehicle
-
-    except sysv_ipc.ExistentialError:
-        print(f"[Normal Traffic Generator] Error: Message queue for {source.value} already exists!")
-    except Exception as e:
-        print(f"[Normal Traffic Generator] Error: {e}")
-
-
-def priority_traffic_gen(source: Direction, lock: multiprocessing.Lock, queue_event: multiprocessing.Event):
-    """ 
-    Generates priority vehicles with synchronization and congestion handling
+    Traffic Generator Process:
+    - Continuously generates vehicles and sends them to Coordinator's message queues.
+    - Handles both normal and priority vehicles.
+    - Uses an event to prevent queue congestion.
     """
-    try:
-        mq = sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[source], sysv_ipc.IPC_CREAT)
+    def __init__(self, source: Direction, queue_event: multiprocessing.Event, lock: multiprocessing.Lock, traffic_lights: TrafficLights, time_manager = TimeManager("auto", 1)):
+        super().__init__()
+        self.source = source
+        self.queue_event = queue_event  # Unique event per direction
+        self.lock = lock # Unique lock for message queue !
+        self.traffic_lights = traffic_lights
 
-        while True:
-            with lock:  # Lock access to the message queue
-                print(f"[Queue Status] {source.value}: {mq.current_messages}/{MAX_VEHICLES_IN_QUEUE}")
+    def run(self):
+        """
+        The process function that generates and sends vehicles to the message queue.
+        Runs continuously with a random time interval.
+        """
+        try:
+            mq = sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[self.source], sysv_ipc.IPC_CREAT)
 
-                if mq.current_messages < MAX_VEHICLES_IN_QUEUE:
-                    vehicle = Vehicle("priority", source, None)
-                    message = str(vehicle).encode()
-                    mq.send(message)
-                    print(f"[Priority Traffic Generator] Sent priority vehicle on {source.value}\n")
-                    queue_event.set()  # Indicate the queue has space
-                else:
-                    queue_event.clear()  # Indicate the queue is full
-                    print(f"[Priority Traffic Generator] Path for {source.value} is congested! Blocking new vehicles...\n")
-                    queue_event.wait()  # Wait until the queue has space
-            sleep(uniform(1, 3))  # Pause before adding another vehicle
+            while True:
+                with self.lock:
+                    print(f"[Queue Status] {self.source.name}: {mq.current_messages}/{MAX_VEHICLES_IN_QUEUE}\n")
 
-    except sysv_ipc.ExistentialError:
-        print(f"[Priority Traffic Generator] Error: Message queue for {source.value} already exists!")
-    except Exception as e:
-        print(f"[Priority Traffic Generator] Error: {e}")
+                    if mq.current_messages < MAX_VEHICLES_IN_QUEUE:
+                        vehicle_type = choices(["normal", "priority"], weights = [9, 1])[0]  # Randomly select vehicle type
+                        vehicle = Vehicle(vehicle_type, self.source, None)
+                        message = str(vehicle).encode()
+                        mq.send(message)
+                        print(f"[TrafficGen] Sent {vehicle_type} vehicle from {self.source}\n")
+
+                        # If it's a priority vehicle, notify TrafficLights
+                        if vehicle_type == "priority":
+                            self.send_priority_signal(vehicle)
+
+                        self.queue_event.set()  # Indicate that a new vehicle is added
+                    else:
+                        self.queue_event.clear()  # Queue full, wait before adding more
+                        print(f"[TrafficGen] Queue full for {self.source}. Waiting for space...\n")
+                        self.queue_event.wait()
+                sleep(uniform(1, 3))  # Randomized vehicle arrival time
+
+        except sysv_ipc.ExistentialError:
+            print(f"[TrafficGen] Error: Message queue for {self.source} does not exist!\n")
+        except Exception as e:
+            print(f"[TrafficGen] Error: {e}\n")
+
+    def send_priority_signal(self, vehicle: Vehicle):
+        """
+        Sends a priority signal (SIGUSR1) to TrafficLights for an approaching emergency.
+        """
+        with self.traffic_lights.priority_direction.get_lock():
+            self.traffic_lights.set_priority_direction(vehicle.source)
+            print(f"[Priority Vehicle] Priority vehicle from {vehicle.source}, sending SIGUSR1...")
+            os.kill(self.traffic_lights.pid, signal.SIGUSR1)
 
 
-def send_priority_signal(traffic_lights: TrafficLights, vehicle: Vehicle):
-    """
-    Send a priority signal SIGUSR1 to the TrafficLights process for an approaching emergency and safely updating the priority direction
-    """
-    with traffic_lights.priority_direction.get_lock():
-        traffic_lights.set_priority_direction(vehicle.source)
-        print(f"[Priority Traffic Generator] Priority vehicle detected from {vehicle.source}, sending SIGUSR1...")
-        os.kill(traffic_lights.pid, signal.SIGUSR1)
-
-
-def remove_vehicle_from_source(source: Direction, queue_event: multiprocessing.Event()):
+def remove_vehicle_from_source(source: Direction, queue_event: multiprocessing.Event):
     """
     Removes one vehicle from the message queue for the given source direction.
     """
@@ -91,36 +81,48 @@ def remove_vehicle_from_source(source: Direction, queue_event: multiprocessing.E
     if mq.current_messages > 0:
         message, _ = mq.receive()
         print(f"[Clear Vehicle] Removed: {message.decode()} from {source.value}")
-        queue_event.set()
+        queue_event.set()  # Allow new vehicles to enter queue
 
 
-def remove_all_vehicles(queue_event: multiprocessing.Event):
+def remove_all_vehicles(queue_events: dict):
     """
-    Remove all vehicles from all directions but not remove any message queue 
+    Removes all vehicles from all queues but does not delete the queues.
     """
-    for mq in [sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[source], sysv_ipc.IPC_CREAT) for source in Direction]:
+    for source, event in queue_events.items():
+        mq = sysv_ipc.MessageQueue(MESSAGE_QUEUE_KEYS[source], sysv_ipc.IPC_CREAT)
         while mq.current_messages > 0:
             mq.receive()
-        queue_event.set()
-    print(f"\n[Clear Vehicles] All vehicles are removed !\n")
+        event.set()  # Allow new vehicles in this direction
+
+    print(f"\n[Clear Vehicles] All vehicles removed!\n")
 
 
 if __name__ == "__main__":
-    queue_event = multiprocessing.Event()  # Indicate when the queue has available space
-    lock = multiprocessing.Lock()  # Single global lock for synchronization
-    remove_all_vehicles(queue_event)
+    # Create separate queue events for each direction
+    queue_events = {direction: multiprocessing.Event() for direction in Direction}
+    locks = {direction: multiprocessing.Lock() for direction in Direction}
+    remove_all_vehicles(queue_events)
+    
+    lights_event = multiprocessing.Event()
+    coordinator_event = multiprocessing.Event()
 
-    source = Direction.NORTH
+    # Start TrafficLights process
+    traffic_lights = TrafficLights(lights_event, coordinator_event)
+    traffic_lights.start()
 
+    # Start vehicle generators for different directions with separate queue events
+    generators = {
+        direction: TrafficGen(direction, queue_events[direction], locks[direction], traffic_lights)
+        for direction in Direction
+    }
 
-    normal_process = multiprocessing.Process(target=normal_traffic_gen, args=(source, lock, queue_event))
-    priority_process = multiprocessing.Process(target=priority_traffic_gen, args=(source, lock, queue_event))
+    # Start all generators
+    for gen in generators.values():
+        gen.start()
 
-    normal_process.start()
-    priority_process.start()
+    sleep(10)
 
-    sleep(15)
-    remove_vehicle_from_source(Direction.NORTH, queue_event)
-
-    normal_process.join()
-    priority_process.join()
+    # Ensure all processes exit cleanly
+    for gen in generators.values():
+        gen.join()
+    traffic_lights.join()
