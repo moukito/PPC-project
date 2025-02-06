@@ -63,7 +63,7 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 
 		green_roads = []
 		for direction, vehicle_list in self.roads.items():
-			if self.lights_state[direction] == LightColor.GREEN:
+			if self.lights_state[direction] == LightColor.GREEN.value:
 				green_roads.append(direction)
 		
 		if len(green_roads) == 1:
