@@ -22,7 +22,7 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 		super().__init__()
 		self.lights_state = shared_lights
 		self.lock = multiprocessing.Lock()
-		self.priority_direction = multiprocessing.Value('i', -1)  # Stores the index of the priority direction
+		self.priority_direction = -1
 		self.event = multiprocessing.Event()
 		signal.signal(signal.SIGUSR1, self.priority_signal_handler)
 		self.queue = queue.Queue()
@@ -98,15 +98,15 @@ class TrafficLights(multiprocessing.Process, Timemanipulator):
 		"""Handles SIGUSR1 signal for priority vehicle detection."""
 		print("[TrafficLights] Received priority vehicle signal!")
 		if signum == signal.SIGUSR1:
-			if self.priority_direction.value != -1:
-				self.queue.put(self.priority_direction.value)
-				self.priority_direction.value = -1
+			if self.priority_direction != -1:
+				self.queue.put(self.priority_direction)
+				self.priority_direction = -1
 		elif signum == signal.SIGUSR2:
 			self.event.set()
 
 	def set_priority_direction(self, direction: Direction):
 		"""Sets the priority direction before sending the signal."""
-		self.priority_direction.value = direction.value
+		self.priority_direction = direction.value
 		print(f"[TrafficLights] Priority vehicle approaching from {direction}")
 
 	@staticmethod

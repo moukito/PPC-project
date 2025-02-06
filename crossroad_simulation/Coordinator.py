@@ -100,6 +100,6 @@ class Coordinator(multiprocessing.Process, Timemanipulator):
 				result(0)
 
 	def verify_priority(self, d1, d2, results):
-		if len(self.roads[d1]) != 0 and self.roads[d1][0].destination != self.roads[d2][0].destination.get_right():
+		if len(self.roads[d1]) != 0 and (len(self.roads[d2]) == 0 or self.roads[d1][0].destination != self.roads[d2][0].destination.get_right()):
 			print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
 			results.append(self.roads[d1].pop)

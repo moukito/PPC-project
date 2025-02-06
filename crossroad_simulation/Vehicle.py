@@ -26,6 +26,10 @@ class Vehicle:
         vehicle_type = lines[0].split(": ")[1]
         source = lines[1].split(": ")[1]
         destination = lines[2].split(": ")[1]
+
+        source = Direction(source)
+        destination = Direction(destination)
+
         return Vehicle(vehicle_type, source, destination)
 
 

@@ -20,8 +20,8 @@ class PriorityTrafficGen(NormalTrafficGen):
 		def wrapper(self, *args, **kwargs):
 			result = func(self, *args, **kwargs)
 			for arg in args:
-				if type(arg) is Vehicle:
-					self.send_priority_signal(self, arg)
+				if type(arg) is Vehicle.Vehicle:
+					self.send_priority_signal(arg)
 			print("[Priority Traffic Generated]")
 			return result
 
