@@ -15,7 +15,7 @@ from crossroad_simulation.TimeManager import TimeManager
 from crossroad_simulation.TimeManipulator import TimeManipulator
 
 HOST = "localhost"
-PORT = 66666
+PORT = 14760
 
 
 class Coordinator(multiprocessing.Process, TimeManipulator):

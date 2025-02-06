@@ -11,7 +11,7 @@ from crossroad_simulation.Coordinator import Coordinator
 from crossroad_simulation.LightColor import LightColor
 
 HOST = "localhost"
-PORT = 66666
+PORT = 14760
 ROAD_WIDTH = 5
 BUFFERSIZE = 1024
 
