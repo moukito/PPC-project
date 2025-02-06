@@ -12,26 +12,19 @@ if __name__ == "__main__":
 	coordinator_event = multiprocessing.Event()
 	traffic_generators_event = {traffic: multiprocessing.Event() for traffic in ["normal_traffic_generators", "priority_traffic_generators"]}
 
-	queue_events = {direction: multiprocessing.Event() for direction in Direction}
 	traffic_queues = {direction: sysv_ipc.MessageQueue(key, sysv_ipc.IPC_CREAT) for key, direction in zip(range(1000, 1004), Direction)}
 
 	lights = TrafficLights(light_event, coordinator_event, time_manager)
 
-	normal_generators = {
-		direction: TrafficGen(direction, "normal", queue_events[direction], lights)
-		for direction in Direction
-	}
+	normal_traffic_generator = NormalTrafficGen(traffic_generators_event["normal_traffic_generators"], coordinator_event, lights, traffic_queues, time_manager)
+
+	priority_traffic_generator = PriorityTrafficGen(traffic_generators_event["priority_traffic_generators"], coordinator_event, lights, traffic_queues, time_manager)
 
 	coordinator = Coordinator(coordinator_event, light_event, lights.get_shared_lights_state(), lights.getpid(), traffic_queues, traffic_generators_event.values(), time_manager)
 
 	lights.start()
-
-	for gen in normal_generators.values():
-		gen.start()
-
-	for gen in priority_generators.values():
-		gen.start()
-
+	normal_traffic_generator.start()
+	priority_traffic_generator.start()
 	coordinator.start()
 
 	try:
@@ -39,4 +32,6 @@ if __name__ == "__main__":
 			time.sleep(1)
 	except KeyboardInterrupt:
 		lights.terminate()
+		normal_traffic_generator.terminate()
+		priority_traffic_generator.terminate()
 		coordinator.terminate()
