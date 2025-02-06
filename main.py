@@ -22,11 +22,6 @@ if __name__ == "__main__":
 		for direction in Direction
 	}
 
-	priority_generators = {
-		direction: TrafficGen(direction, "priority", queue_events[direction], lights)
-		for direction in Direction
-	}
-
 	coordinator = Coordinator(coordinator_event, light_event, lights.get_shared_lights_state(), lights.getpid(), traffic_queues, traffic_generators_event.values(), time_manager)
 
 	lights.start()

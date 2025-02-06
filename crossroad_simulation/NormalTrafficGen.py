@@ -1,4 +1,5 @@
 import multiprocessing
+import random
 import sysv_ipc
 import signal
 import os
@@ -13,41 +14,32 @@ MAX_VEHICLES_IN_QUEUE = 5  # Maximum queue size per direction
 
 class NormalTrafficGen(multiprocessing.Process, Timemanipulator):
 
-    def __init__(self, traffic_event, coordinator_event, queue_event: multiprocessing.Event, traffic_lights: TrafficLights, traffic_queues, time_manager=TimeManager("auto", 0)):
+    def __init__(self, traffic_event: multiprocessing.Event, coordinator_event: multiprocessing.Event, traffic_lights: TrafficLights, traffic_queues, time_manager=TimeManager("auto", 0)):
         super().__init__()
         self.traffic_event = traffic_event
         self.coordinator_event = coordinator_event
         self.traffic_queues = traffic_queues
-        self.queue_event = queue_event  # Unique event per direction
         self.traffic_lights = traffic_lights
         self.time_manager = time_manager
 
     def run(self):
+        while True:
+            if self.vehicle_to_send():
+                vehicle = self.generate_vehicle()
+                self.send_message(vehicle)
+            self.next()
+
+    def send_message(self, vehicle):
         try:
-            while True:
-                print(f"[TrafficGen] Queue Status : {self.source.name}: {self.traffic_queues.current_messages}/{MAX_VEHICLES_IN_QUEUE}\n")
-
-                if self.traffic_queues.current_messages < MAX_VEHICLES_IN_QUEUE:
-                    vehicle = Vehicle(self.vehicle_type, self.source, None)
-                    message = str(vehicle).encode()
-                    self.traffic_queues.send(message)
-                    print(f"[TrafficGen] Sent {self.vehicle_type} vehicle from {self.source}\n")
-
-                    # If it's a priority vehicle, notify TrafficLights
-                    if self.vehicle_type == "priority":
-                        self.send_priority_signal(vehicle)
-
-                    self.queue_event.set()  # Indicate that a new vehicle is added
-                else:
-                    self.queue_event.clear()  # Queue full, wait before adding more
-                    print(f"[TrafficGen] Queue full for {self.source}. Waiting for space...\n")
-                    self.queue_event.wait()
-                if self.vehicle_type == "priority":
-                    self.time_manager.sleep(30)
-                else:
-                    self.time_manager.sleep(2)
+            print(f"[TrafficGen] Queue Status : {vehicle.source.name}: {self.traffic_queues.current_messages}/{MAX_VEHICLES_IN_QUEUE}\n")
+            if self.traffic_queues.current_messages < MAX_VEHICLES_IN_QUEUE:
+                message = str(vehicle).encode()
+                self.traffic_queues.send(message)
+                print(f"[TrafficGen] Sent {vehicle.type} vehicle from {vehicle.source}\n")
+            else:
+                print(f"[TrafficGen] Queue full for {vehicle.source}. Waiting for space...\n")
         except sysv_ipc.ExistentialError:
-            print(f"[TrafficGen] Error: Message queue for {self.source} does not exist!\n")
+            print(f"[TrafficGen] Error: Message queue for {vehicle.source} does not exist!\n")
         except Exception as e:
             print(f"[TrafficGen] Error: {e}\n")
 
@@ -57,5 +49,59 @@ class NormalTrafficGen(multiprocessing.Process, Timemanipulator):
         self.coordinator_event.wait()
         self.traffic_event.clear()
 
-    def send_priority_signal(self, vehicle: Vehicle):
-        self.traffic_lights.send_signal(vehicle.source)
+    @staticmethod
+    def vehicle_to_send():
+        return random.random() < 0.6
+
+    @staticmethod
+    def generate_vehicle():
+        source, destination = NormalTrafficGen.generate_direction()
+
+        return Vehicle("normal", source, destination)
+
+    @staticmethod
+    def generate_direction():
+        alea = random.random()
+        if alea < 0.25:
+            source = Direction.EAST
+        elif alea < 0.5:
+            source = Direction.NORTH
+        elif alea < 0.75:
+            source = Direction.SOUTH
+        else:
+            source = Direction.WEST
+
+        source = Direction(source)
+
+        destination = None
+        while destination is None:
+            alea = random.random()
+            if source != Direction.EAST and alea < 0.25:
+                destination = Direction.EAST
+            elif source != Direction.NORTH and alea < 0.5:
+                destination = Direction.NORTH
+            elif source != Direction.SOUTH and alea < 0.75:
+                destination = Direction.SOUTH
+            elif source != Direction.WEST:
+                destination = Direction.WEST
+
+        destination = Direction(destination)
+
+        return source, destination
+
+
+if __name__ == '__main__':
+    pass
+
+
+# if __name__ == "__main__":
+#     traffic_lights = TrafficLights(lights_event=multiprocessing.Event(), coordinator_event=multiprocessing.Event(), time_manager=TimeManager("auto", 1))
+#
+#     gen = NormalTrafficGen(traffic_event=multiprocessing.Event(), coordinator_event=multiprocessing.Event(), traffic_lights=traffic_lights, traffic_queues={traffic: multiprocessing.Event() for traffic in ["normal_traffic_generators", "priority_traffic_generators"]}, time_manager=TimeManager("auto", 1))
+#     gen.start()
+#
+#     try:
+#         while True:
+#             pass
+#     except KeyboardInterrupt:
+#         gen.terminate()
