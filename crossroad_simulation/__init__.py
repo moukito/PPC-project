@@ -24,8 +24,7 @@ from .Lights import TrafficLights
 from .Coordinator import Coordinator
 from .NormalTrafficGen import NormalTrafficGen
 from .PriorityTrafficGen import PriorityTrafficGen
-#from .display import Display
-#from .config import SIMULATION_SETTINGS
+
 
 __all__ = [
 	"LightColor",
@@ -34,6 +33,4 @@ __all__ = [
 	"Coordinator",
 	"NormalTrafficGen",
 	"PriorityTrafficGen",
-#	"Display",
-#	"SIMULATION_SETTINGS",
 ]

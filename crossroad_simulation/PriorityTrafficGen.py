@@ -5,7 +5,7 @@ from crossroad_simulation.TimeManager import TimeManager
 
 
 class PriorityTrafficGen(NormalTrafficGen):
-	def __init__(self, traffic_event, coordinator_event, traffic_lights: TrafficLights, traffic_queues, time_manager=TimeManager("auto", 0)):
+	def __init__(self, traffic_event, coordinator_event: multiprocessing.Event, traffic_lights: TrafficLights, traffic_queues, time_manager=TimeManager("auto", 0)):
 		NormalTrafficGen.__init__(self, traffic_event, coordinator_event, traffic_lights, traffic_queues, time_manager)
 
 	@staticmethod

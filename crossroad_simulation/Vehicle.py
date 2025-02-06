@@ -1,11 +1,10 @@
 from crossroad_simulation.Direction import Direction
-from random import sample
 
 TYPES = ["normal", "priority"]
 
 
 class Vehicle:
-    def __init__(self, type, source: Direction, destination: Direction):
+    def __init__(self, type: str, source: Direction, destination: Direction):
         if type not in TYPES:
             raise TypeError("Wrong type !")
         if source not in Direction:

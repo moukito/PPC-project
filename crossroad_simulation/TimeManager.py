@@ -40,4 +40,12 @@ class TimeManager:
 			if self.time_unit > 0:
 				time.sleep(units * self.time_unit)
 		elif self.mode == "manual":
+			input("Press enter to continue...")
 			pass  # todo wait user input to continue
+
+
+if __name__ == "__main__":
+	time_manager = TimeManager("manual")
+	time_manager.sleep()
+	time_manager.sleep()
+	time_manager.sleep()

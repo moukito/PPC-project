@@ -1,16 +1,14 @@
 import os
 import queue
-import time
 import signal
 import multiprocessing
-from multiprocessing import Value
 from crossroad_simulation.Direction import Direction
 from crossroad_simulation.TimeManager import TimeManager
 from crossroad_simulation.LightColor import LightColor
-from crossroad_simulation.Timemanipulator import Timemanipulator
+from crossroad_simulation.TimeManipulator import TimeManipulator
 
 
-class TrafficLights(multiprocessing.Process, Timemanipulator):
+class TrafficLights(multiprocessing.Process, TimeManipulator):
 	"""
 	Manages the traffic lights at the intersection.
 	- Normal mode: Opposing lights share the same state (North-South, East-West).

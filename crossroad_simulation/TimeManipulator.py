@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class Timemanipulator(ABC):
+class TimeManipulator(ABC):
 	"""
 	Abstract base class for traffic-related entities like Coordinator
 	and TrafficLights.

@@ -5,12 +5,12 @@ from crossroad_simulation.Vehicle import Vehicle
 from crossroad_simulation.Direction import Direction
 from crossroad_simulation.Lights import TrafficLights
 from crossroad_simulation.TimeManager import TimeManager
-from crossroad_simulation.Timemanipulator import Timemanipulator
+from crossroad_simulation.TimeManipulator import TimeManipulator
 
 MAX_VEHICLES_IN_QUEUE = 5  # Maximum queue size per direction
 
 
-class NormalTrafficGen(multiprocessing.Process, Timemanipulator):
+class NormalTrafficGen(multiprocessing.Process, TimeManipulator):
 
     def __init__(self, traffic_event: multiprocessing.Event, coordinator_event: multiprocessing.Event, traffic_lights: TrafficLights, traffic_queues, time_manager=TimeManager("auto", 0)):
         super().__init__()

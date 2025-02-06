@@ -7,13 +7,12 @@ import sysv_ipc
 from typing import Dict, List
 from crossroad_simulation.Vehicle import Vehicle
 from crossroad_simulation.Direction import Direction
-from crossroad_simulation.Lights import TrafficLights
 from crossroad_simulation.LightColor import LightColor
 from crossroad_simulation.TimeManager import TimeManager
-from crossroad_simulation.Timemanipulator import Timemanipulator
+from crossroad_simulation.TimeManipulator import TimeManipulator
 
 
-class Coordinator(multiprocessing.Process, Timemanipulator):
+class Coordinator(multiprocessing.Process, TimeManipulator):
 	"""
 	Manages vehicle movement at the intersection.
 	- Uses SysV message queues for inter-process communication.
