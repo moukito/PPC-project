@@ -11,8 +11,21 @@ MAX_VEHICLES_IN_QUEUE = 5  # Maximum queue size per direction
 
 
 class NormalTrafficGen(multiprocessing.Process, TimeManipulator):
+    """
+    Generates normal traffic for the simulation.
+    Inherits from multiprocessing.Process to run in a separate process and TimeManipulator for time management.
+    """
 
     def __init__(self, traffic_event: multiprocessing.Event, coordinator_event: multiprocessing.Event, traffic_lights: TrafficLights, traffic_queues, time_manager=TimeManager("auto", 0)):
+        """
+        Initializes the NormalTrafficGen process.
+        
+        :param traffic_event: Event to signal traffic generation.
+        :param coordinator_event: Event to coordinate with the main process.
+        :param traffic_lights: Instance of TrafficLights to manage traffic light states.
+        :param traffic_queues: Dictionary of message queues for each direction.
+        :param time_manager: Instance of TimeManager to manage simulation time.
+        """
         super().__init__()
         self.traffic_event = traffic_event
         self.coordinator_event = coordinator_event
@@ -21,6 +34,10 @@ class NormalTrafficGen(multiprocessing.Process, TimeManipulator):
         self.time_manager = time_manager
 
     def run(self):
+        """
+        Main loop of the traffic generator process.
+        Continuously generates and sends vehicles if conditions are met.
+        """
         while True:
             if self.vehicle_to_send():
                 vehicle = self.generate_vehicle()
@@ -28,6 +45,11 @@ class NormalTrafficGen(multiprocessing.Process, TimeManipulator):
             self.next()
 
     def send_message(self, vehicle):
+        """
+        Sends a vehicle message to the appropriate queue.
+        
+        :param vehicle: Vehicle instance to be sent.
+        """
         try:
             print(f"[TrafficGen] Queue Status : {vehicle.source.name}: {self.traffic_queues[vehicle.source].current_messages}/{MAX_VEHICLES_IN_QUEUE}\n")
             if self.traffic_queues[vehicle.source].current_messages < MAX_VEHICLES_IN_QUEUE:
@@ -42,6 +64,11 @@ class NormalTrafficGen(multiprocessing.Process, TimeManipulator):
             print(f"[TrafficGen] Error: {e}\n")
 
     def next(self, unit=1):
+        """
+        Advances the simulation by a given number of time units.
+        
+        :param unit: Number of time units to advance.
+        """
         self.traffic_event.set()
         self.time_manager.sleep(unit)
         self.coordinator_event.wait()
@@ -49,16 +76,30 @@ class NormalTrafficGen(multiprocessing.Process, TimeManipulator):
 
     @staticmethod
     def vehicle_to_send():
+        """
+        Determines whether a vehicle should be sent based on a random probability.
+        
+        :return: True if a vehicle should be sent, False otherwise.
+        """
         return random.random() < 0.6
 
     @staticmethod
     def generate_vehicle():
+        """
+        Generates a new vehicle with random source and destination directions.
+        
+        :return: A new Vehicle instance.
+        """
         source, destination = NormalTrafficGen.generate_direction()
-
         return Vehicle("normal", source, destination)
 
     @staticmethod
     def generate_direction():
+        """
+        Randomly generates source and destination directions for a vehicle.
+        
+        :return: Tuple containing source and destination directions.
+        """
         alea = random.random()
         if alea < 0.25:
             source = Direction.EAST
@@ -86,20 +127,3 @@ class NormalTrafficGen(multiprocessing.Process, TimeManipulator):
         destination = Direction(destination)
 
         return source, destination
-
-
-if __name__ == '__main__':
-    pass
-
-
-# if __name__ == "__main__":
-#     traffic_lights = TrafficLights(lights_event=multiprocessing.Event(), coordinator_event=multiprocessing.Event(), time_manager=TimeManager("auto", 1))
-#
-#     gen = NormalTrafficGen(traffic_event=multiprocessing.Event(), coordinator_event=multiprocessing.Event(), traffic_lights=traffic_lights, traffic_queues={traffic: multiprocessing.Event() for traffic in ["normal_traffic_generators", "priority_traffic_generators"]}, time_manager=TimeManager("auto", 1))
-#     gen.start()
-#
-#     try:
-#         while True:
-#             pass
-#     except KeyboardInterrupt:
-#         gen.terminate()

@@ -16,7 +16,14 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 	"""
 
 	def __init__(self, shared_lights, lights_event, coordinator_event, time_manager=TimeManager("auto", 0)):
-		"""Initialize shared memory for four traffic lights and priority event."""
+		"""
+		Initialize shared memory for four traffic lights and priority event.
+
+		:param shared_lights: Shared dictionary representing the state of the traffic lights.
+		:param lights_event: Event to signal traffic light changes.
+		:param coordinator_event: Event to coordinate with the main process.
+		:param time_manager: Instance of TimeManager to manage simulation time.
+		"""
 		super().__init__()
 		self.lights_state = shared_lights
 		self.lock = multiprocessing.Lock()
@@ -31,12 +38,15 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 	def get_shared_lights_state(self):
 		"""
 		Provides access to the shared lights_state for external processes.
-		Returns the dictionary of shared memory objects representing light states.
+
+		:return: Dictionary of shared memory objects representing light states.
 		"""
 		return self.lights_state
 
 	def run(self):
-		"""Main loop to control traffic lights."""
+		"""
+		Main loop to control traffic lights.
+		"""
 		while True:
 			if not self.queue.empty():
 				self.handle_priority_vehicle()
@@ -49,13 +59,20 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 					self.next()
 
 	def next(self, unit: int = 1):
+		"""
+		Advances the simulation by a given number of time units.
+
+		:param unit: Number of time units to advance.
+		"""
 		self.lights_event.set()
 		self.time_manager.sleep(unit)
 		self.coordinator_event.wait()
 		self.lights_event.clear()
 
 	def toggle_normal_cycle(self):
-		"""Switches traffic lights in normal mode (North-South green, East-West red, then switch)."""
+		"""
+		Switches traffic lights in normal mode (North-South green, East-West red, then switch).
+		"""
 		current_ns = self.lights_state[Direction.NORTH]
 
 		new_ns = LightColor.GREEN.value if current_ns == LightColor.RED.value else LightColor.RED.value
@@ -73,7 +90,9 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 			f"[TrafficLights] Normal mode: North-South {'GREEN' if new_ns == LightColor.GREEN.value else 'RED'}, East-West {'GREEN' if new_ew == LightColor.GREEN.value else 'RED'}")
 
 	def handle_priority_vehicle(self):
-		"""Turns only the priority direction's light green while setting all others to red."""
+		"""
+		Turns only the priority direction's light green while setting all others to red.
+		"""
 		priority_dir_index = self.queue.get()
 		if priority_dir_index == -1:
 			return
@@ -90,7 +109,12 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 		print(f"[TrafficLights] Priority vehicle detected! Green light for {priority_dir}, all others set to RED.")
 
 	def priority_signal_handler(self, signum, frame):
-		"""Handles SIGUSR1 signal for priority vehicle detection."""
+		"""
+		Handles SIGUSR1 signal for priority vehicle detection.
+
+		:param signum: Signal number.
+		:param frame: Current stack frame.
+		"""
 		print("[TrafficLights] Received priority vehicle signal!")
 		if signum == signal.SIGUSR1:
 			if self.priority_direction != -1:
@@ -100,15 +124,29 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 			self.event.set()
 
 	def set_priority_direction(self, direction: Direction):
-		"""Sets the priority direction before sending the signal."""
+		"""
+		Sets the priority direction before sending the signal.
+
+		:param direction: Direction of the priority vehicle.
+		"""
 		self.priority_direction = direction.value
 		print(f"[TrafficLights] Priority vehicle approaching from {direction}")
 
 	@staticmethod
 	def getpid():
+		"""
+		Returns the process ID of the current process.
+
+		:return: Process ID.
+		"""
 		return os.getpid()
 
 	def send_signal(self, direction: Direction):
+		"""
+		Sends a signal to the traffic lights process to handle a priority vehicle.
+
+		:param direction: Direction of the priority vehicle.
+		"""
 		with self.lock:
 			self.set_priority_direction(direction)
 			os.kill(self.getpid(), signal.SIGUSR1)

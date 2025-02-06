@@ -10,12 +10,19 @@ class TimeManager:
 	def __init__(self, mode, time_unit=1):
 		"""
 		Initialize with a default time unit (e.g., 1 second).
+
+		:param mode: Mode of the time manager ('auto' or 'manual').
 		:param time_unit: Length of a single time unit in seconds.
 		"""
 		self.mode = mode
 		self.time_unit = time_unit
 
 	def change_mode(self, mode=None):
+		"""
+		Change the mode of the time manager.
+
+		:param mode: New mode to set ('auto' or 'manual'). If None, toggles the current mode.
+		"""
 		if mode is None:
 			self.mode = "auto" if self.mode == "manual" else "manual"
 		else:
@@ -24,7 +31,9 @@ class TimeManager:
 	def set_time_unit(self, time_unit):
 		"""
 		Update the time unit dynamically.
+
 		:param time_unit: New time unit in seconds.
+		:raises ValueError: If the time unit is not a positive value.
 		"""
 		if time_unit >= 0:
 			self.time_unit = time_unit
@@ -34,6 +43,7 @@ class TimeManager:
 	def sleep(self, units=1):
 		"""
 		Pause execution for a given number of time units.
+
 		:param units: Number of time units to sleep.
 		"""
 		if self.mode == "auto":
@@ -41,7 +51,6 @@ class TimeManager:
 				time.sleep(units * self.time_unit)
 		elif self.mode == "manual":
 			input("Press enter to continue...")
-			pass  # todo wait user input to continue
 
 
 if __name__ == "__main__":
