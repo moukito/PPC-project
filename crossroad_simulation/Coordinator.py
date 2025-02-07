@@ -151,7 +151,6 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
                                 vehicles = [str(vehicle) for vehicle in self.roads_queue.get().get(Direction(direction), [])]
 
                                 message = f"direction : {direction.value}; light : {light}; vehicles : {vehicles}.\n"
-                                print("message :", message)
                                 client_socket.sendall(message.encode())
                         except self.roads_queue.empty:
                             pass

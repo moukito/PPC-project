@@ -130,8 +130,6 @@ def draw(stdscr, queue):
         stdscr.addstr(size + 2, 0, "Press 'q' to quit.")
         stdscr.refresh()
 
-        time.sleep(0.5)
-
         key = stdscr.getch()
         if key == ord('q'):
             break
