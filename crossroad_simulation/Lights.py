@@ -1,10 +1,10 @@
-import os
-import queue
-import signal
 import multiprocessing
+import os
+import signal
+
 from crossroad_simulation.Direction import Direction
-from crossroad_simulation.TimeManager import TimeManager
 from crossroad_simulation.LightColor import LightColor
+from crossroad_simulation.TimeManager import TimeManager
 from crossroad_simulation.TimeManipulator import TimeManipulator
 
 

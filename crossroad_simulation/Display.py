@@ -4,7 +4,7 @@ import curses
 import threading
 import queue as qe
 
-from crossroad_simulation import Vehicle
+from crossroad_simulation.Vehicle import Vehicle
 from crossroad_simulation.NormalTrafficGen import MAX_VEHICLES_IN_QUEUE
 from crossroad_simulation.Direction import Direction
 from crossroad_simulation.Coordinator import Coordinator
@@ -60,48 +60,39 @@ def next():
 
 
 def print_vehicles(stdscr, queue):
-    """
-    Print vehicles at corresponding position 
-    """
     curses.start_color()
 
     curses.init_pair(1, curses.COLOR_YELLOW, curses.COLOR_BLACK)
 
     write = {Direction.NORTH: 'N', Direction.EAST: 'E', Direction.SOUTH: 'S', Direction.WEST: 'W'}
 
-    source = queue[0]
-    vehicles = queue[2]
-    for i in range(len(vehicles)):
-        y, x = get_vehicles_legal_entry_position()[source][i]
-        if vehicles[i].type == "normal":
-            stdscr.addch(y, x, write[source])
-        else:
-            stdscr.addch(y, x, write[source], curses.color_pair(1))
+    for source, vehicles in queue.items():
+        vehicles = vehicles[1]
+        for i in range(min(len(vehicles), 5)):
+            y, x = get_vehicles_legal_entry_position()[source][i]
+            if vehicles[i].type == "normal":
+                stdscr.addch(y, x, write[source])
+            else:
+                stdscr.addch(y, x, write[source], curses.color_pair(1))
 
 
 def print_lights(stdscr, queue):
-    """
-    Print lights at corresponding position
-    """
     curses.start_color()
 
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
 
     curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)
 
-    source = queue[0]
-    light = queue[1]
-    y, x = get_lights_position()[source]
-    if light == LightColor.RED.value:
-        stdscr.addch(y, x, 'R', curses.color_pair(2))
-    else:
-        stdscr.addch(y, x, 'G', curses.color_pair(3))
+    for source, light in queue.items():
+        light = light[0]
+        y, x = get_lights_position()[source]
+        if light == LightColor.RED.value:
+            stdscr.addch(y, x, 'R', curses.color_pair(2))
+        else:
+            stdscr.addch(y, x, 'G', curses.color_pair(3))
 
 
 def draw(stdscr, queue):
-    """
-    Draw in terminal the crossroad with vehicles and lights
-    """
     stdscr.nodelay(True)
     stdscr.clear()
 
@@ -112,6 +103,7 @@ def draw(stdscr, queue):
         err = f"Terminal size is too small, need at least {size + 3} lines for height and width !"
         raise ValueError(err)
 
+    values = {direction: [LightColor.RED.value, []] for direction in Direction}
     while True:
         stdscr.clear()
 
@@ -120,18 +112,20 @@ def draw(stdscr, queue):
                 if MAX_VEHICLES_IN_QUEUE <= i < MAX_VEHICLES_IN_QUEUE + ROAD_WIDTH and not (MAX_VEHICLES_IN_QUEUE <= j < MAX_VEHICLES_IN_QUEUE + ROAD_WIDTH):
                     char = '-' if (i - MAX_VEHICLES_IN_QUEUE) % 2 == 0 else ' '
                 elif (MAX_VEHICLES_IN_QUEUE <= j < MAX_VEHICLES_IN_QUEUE + ROAD_WIDTH and
-                    not (MAX_VEHICLES_IN_QUEUE <= i < MAX_VEHICLES_IN_QUEUE + ROAD_WIDTH)):
+                      not (MAX_VEHICLES_IN_QUEUE <= i < MAX_VEHICLES_IN_QUEUE + ROAD_WIDTH)):
                     char = '|' if (j - MAX_VEHICLES_IN_QUEUE) % 2 == 0 else ' '
                 else:
                     char = ' '
                 stdscr.addch(i, j, char)
 
         try:
-            values = queue.get()
-            print_vehicles(stdscr, values)
-            print_lights(stdscr, values)
+            temp = queue.get()
+            values[temp[0]] = temp[1:]
         except queue.empty():
             pass
+
+        print_vehicles(stdscr, values)
+        print_lights(stdscr, values)
 
         stdscr.addstr(size + 2, 0, "Press 'q' to quit.")
         stdscr.refresh()
@@ -177,22 +171,25 @@ def receive_from_coordinator(queue):
 def update_coordinator_state(queue, data: str):
     """
     Parses received data and updates the Coordinator object.
+    Expected format: "direction : NORTH; light : RED; vehicles : [Vehicle]"
     """
-    lines = data.strip().split("\n")
+    lines = data.strip().split(".\n")
     for line in lines:
-        parts = line.split(", ")
+        parts = line.split("; ")
         state_update = {}
 
         for part in parts:
-            print(part)
-            key, value = part.split(": ")
+            key, value = part.split(" : ")
             state_update[key.strip()] = value.strip()
 
         direction = Direction(state_update["direction"])
         light = int(state_update["light"])
-        vehicle = Vehicle.str_to_vehicle(state_update["vehicles"])
-
-        print(f"[Updated] {direction} -> Light: {light}, Vehicles: {vehicle}")
+        vehicle = []
+        if state_update["vehicles"] != "[]":
+            str_vehicles = state_update["vehicles"][1:-2].split('\'')
+            for str_vehicle in str_vehicles:
+                if str_vehicle != '' and str_vehicle != ", ":
+                    vehicle.append(Vehicle.str_to_vehicle(str_vehicle.replace('\\n', '\n')))
 
         queue.put([direction, light, vehicle])
 
