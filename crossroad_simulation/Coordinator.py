@@ -87,10 +87,10 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
             except sysv_ipc.BusyError:
                 pass
 
-    def move_vehicle(self):
-        """
-        Moves vehicles based on the current state of the traffic lights.
-        """
+        def move_vehicle(self):
+            """
+			Moves vehicles based on the current state of the traffic lights.
+			"""
         self.lights_event.wait()
 
         green_roads = []
@@ -101,7 +101,6 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
         if len(green_roads) == 1:
             direction = green_roads[0]
             if self.roads[direction]:
-                print(f"[Coordinator] Moving vehicle from {direction}.")
                 if self.roads[direction].pop(0).type == "priority":
                     os.kill(self.light_pid, signal.SIGUSR2)
 
@@ -115,11 +114,11 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
             if len(results) == 0:
                 r = random.random()
                 if len(self.roads[d1]) != 0 and r < 0.5:
-                    print(f"[Coordinator] Moving vehicle from {d1} to {self.roads[d1][0].destination}.")
-                    self.roads[d1].pop(0)
+                    if self.roads[d1].pop(0).type == "priority":
+                        os.kill(self.light_pid, signal.SIGUSR2)
                 elif len(self.roads[d2]) != 0:
-                    print(f"[Coordinator] Moving vehicle from {d2} to {self.roads[d2][0].destination}.")
-                    self.roads[d2].pop(0)
+                    if self.roads[d2].pop(0).type == "priority":
+                        os.kill(self.light_pid, signal.SIGUSR2)
 
             for result in results:
                 result(0)
@@ -147,12 +146,13 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
 
                     while True:
                         try:
+                            vehicles = self.roads_queue.get()
                             for direction, light in self.lights_state.items():
-                                vehicles = [str(vehicle) for vehicle in self.roads_queue.get().get(Direction(direction), [])]
+                                vehicle = [str(vehicle) for vehicle in vehicles.get(Direction(direction), [])]
 
-                                message = f"direction : {direction.value}; light : {light}; vehicles : {vehicles}.\n"
+                                message = f"direction : {direction.value}; light : {light}; vehicles : {vehicle}.\n"
                                 client_socket.sendall(message.encode())
-                        except self.roads_queue.empty:
+                        except Exception:
                             pass
             except ConnectionRefusedError:
                 pass
