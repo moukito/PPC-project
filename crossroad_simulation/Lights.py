@@ -51,12 +51,17 @@ class TrafficLights(multiprocessing.Process, TimeManipulator):
 		while True:
 			if not self.queue.empty():
 				self.handle_priority_vehicle()
-				while not self.event.is_set():
+				timeout = 3
+				while not self.event.is_set() and timeout > 0:
+					timeout-=1
 					self.next()
 				self.event.clear()
+				for direction in Direction:
+					with self.lock:
+						self.lights_state[direction] = LightColor.RED.value
 			else:
 				self.toggle_normal_cycle()
-				for i in range(5):
+				for i in range(3):
 					self.next()
 
 	def next(self, unit: int = 1):

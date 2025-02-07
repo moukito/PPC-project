@@ -68,12 +68,13 @@ def print_vehicles(stdscr, queue):
 
     for source, vehicles in queue.items():
         vehicles = vehicles[1]
+        print(vehicles)
         for i in range(min(len(vehicles), 5)):
             y, x = get_vehicles_legal_entry_position()[source][i]
             if vehicles[i].type == "normal":
-                stdscr.addch(y, x, write[source])
+                stdscr.addch(y, x, write[vehicles[i].destination])
             else:
-                stdscr.addch(y, x, write[source], curses.color_pair(1))
+                stdscr.addch(y, x, write[vehicles[i].destination], curses.color_pair(1))
 
 
 def print_lights(stdscr, queue):

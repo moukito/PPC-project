@@ -29,7 +29,7 @@ class PriorityTrafficGen(NormalTrafficGen):
 
 		:return: True if a priority vehicle should be sent, False otherwise.
 		"""
-		return random.random() < 0.3
+		return random.random() < 0.2
 
 	def send_priority_signal(self, vehicle: Vehicle):
 		"""

@@ -76,7 +76,7 @@ class NormalTrafficGen(multiprocessing.Process, TimeManipulator):
         
         :return: True if a vehicle should be sent, False otherwise.
         """
-        return random.random() < 0.6
+        return random.random() < 0.5
 
     @staticmethod
     def generate_vehicle():
