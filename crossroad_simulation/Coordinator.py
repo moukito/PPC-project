@@ -87,10 +87,10 @@ class Coordinator(multiprocessing.Process, TimeManipulator):
             except sysv_ipc.BusyError:
                 pass
 
-    def move_vehicle(self):
-        """
-        Moves vehicles based on the current state of the traffic lights.
-        """
+        def move_vehicle(self):
+            """
+			Moves vehicles based on the current state of the traffic lights.
+			"""
         self.lights_event.wait()
 
         green_roads = []
