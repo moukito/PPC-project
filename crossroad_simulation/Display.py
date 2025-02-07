@@ -151,14 +151,12 @@ def receive_from_coordinator(queue):
             with conn:
                 print(f"[Display] Connected to Coordinator at {addr}")
                 while True:
-                    print("receiving data\n")
                     try:
                         data = conn.recv(BUFFERSIZE)
                         if not data:
                             break
 
                         decoded_data = data.decode()
-                        print(f"[Traffic Update] {decoded_data}")
 
                         update_coordinator_state(queue, decoded_data)
 
